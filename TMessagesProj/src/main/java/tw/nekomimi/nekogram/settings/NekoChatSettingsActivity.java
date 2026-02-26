@@ -100,9 +100,9 @@ public class NekoChatSettingsActivity extends BaseNekoSettingsActivity implement
         resetItem.setTag(null);
         resetItem.setOnClickListener(v -> {
             AndroidUtilities.updateViewVisibilityAnimated(resetItem, false, 0.5f, true);
-            if (listView != null) {
-                var stickerCell = (StickerSizeCell) listView.findViewByItemId(stickerSizeRow);
-                var item = listView.findItemByItemId(stickerSizeRow);
+            var item = listView.findItemByItemId(stickerSizeRow);
+            var stickerCell = (StickerSizeCell) listView.findViewByItemId(stickerSizeRow);
+            if (stickerCell != null) {
                 ValueAnimator animator = ValueAnimator.ofFloat(NekoConfig.stickerSize, 14.0f);
                 animator.setDuration(150);
                 animator.setInterpolator(CubicBezierInterpolator.EASE_OUT_QUINT);
@@ -112,8 +112,10 @@ public class NekoChatSettingsActivity extends BaseNekoSettingsActivity implement
                     stickerCell.setValue(floatValue);
                 });
                 animator.start();
-                item.floatValue = 14.0f;
+            } else {
+                NekoConfig.setStickerSize(14.0f);
             }
+            item.floatValue = 14.0f;
         });
         AndroidUtilities.updateViewVisibilityAnimated(resetItem, Float.compare(NekoConfig.stickerSize, 14.0f) != 0, 1f, false);
 

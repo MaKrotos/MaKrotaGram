@@ -18,12 +18,12 @@ public class StickerHelper {
     private static final Executor rendererExecutor = Executors.newCachedThreadPool();
 
     public static void convertStickerFormat(String path, boolean animated, Consumer<String> callback) {
+        var resultPath = path + ".gif";
+        var cacheOptions = new BitmapsCache.CacheOptions();
+        var drawable = animated ?
+                new RLottieDrawable(new File(path), 512, 512, cacheOptions, false, null, 0) :
+                new AnimatedFileDrawable(new File(path), true, 0, 0, null, null, null, 0, 0, false, 0, 0, cacheOptions);
         rendererExecutor.execute(() -> {
-            var resultPath = path + ".gif";
-            var cacheOptions = new BitmapsCache.CacheOptions();
-            var drawable = animated ?
-                    new RLottieDrawable(new File(path), 512, 512, cacheOptions, false, null, 0) :
-                    new AnimatedFileDrawable(new File(path), true, 0, 0, null, null, null, 0, 0, false, 0, 0, cacheOptions);
             var success = renderToGif(resultPath, drawable, drawable.getIntrinsicWidth(), drawable.getIntrinsicHeight());
             if (animated) {
                 ((RLottieDrawable) drawable).recycle(false);

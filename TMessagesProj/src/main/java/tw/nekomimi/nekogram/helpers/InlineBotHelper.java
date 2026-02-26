@@ -40,7 +40,7 @@ public class InlineBotHelper extends BaseController {
 
     public void query(UserHelper.BotInfo botInfo, String query, boolean searchUser, boolean cache, Utilities.Callback2<ArrayList<TLRPC.BotInlineResult>, String> callback) {
         if (botInfo == null) {
-            callback.run(null, "EMPTY_BOT_INFO");
+            AndroidUtilities.runOnUIThread(() -> callback.run(null, "EMPTY_BOT_INFO"));
             return;
         }
         var bot = getMessagesController().getUser(botInfo.getId());
@@ -48,7 +48,7 @@ public class InlineBotHelper extends BaseController {
             if (searchUser) {
                 getUserHelper().resolveUser(botInfo.getUsername(), botInfo.getId(), user -> query(botInfo, query, false, cache, callback));
             } else {
-                callback.run(null, "USER_NOT_FOUND");
+                AndroidUtilities.runOnUIThread(() -> callback.run(null, "USER_NOT_FOUND"));
             }
             return;
         }

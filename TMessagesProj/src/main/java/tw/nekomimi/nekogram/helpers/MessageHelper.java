@@ -366,6 +366,7 @@ public class MessageHelper extends BaseController {
     }
 
     private static void saveStickerToGallery(Activity activity, String path, boolean video, boolean animated, Utilities.Callback<Uri> callback) {
+        if (path == null) return;
         Utilities.globalQueue.postRunnable(() -> {
             try {
                 if (video || animated) {

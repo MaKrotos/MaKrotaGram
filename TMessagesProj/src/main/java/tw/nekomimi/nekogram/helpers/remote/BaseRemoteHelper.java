@@ -120,6 +120,9 @@ public abstract class BaseRemoteHelper {
         if (botInfo == null) {
             return;
         }
+        if (!UserConfig.getInstance(UserConfig.selectedAccount).isClientActivated()) {
+            return;
+        }
         if (loading) return;
         loading = true;
         getInlineBotHelper().query(botInfo,
