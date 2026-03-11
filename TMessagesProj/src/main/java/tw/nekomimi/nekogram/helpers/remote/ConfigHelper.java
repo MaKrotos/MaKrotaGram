@@ -101,21 +101,25 @@ public class ConfigHelper extends BaseRemoteHelper {
     }
 
     public static TLRPC.TL_pendingSuggestion getNewsSuggestion() {
-        return getNews()
-                .stream()
-                .filter(news -> news.type == TYPE_SUGGESTION)
-                .filter(news -> news.id == null || !preferences.getBoolean("news_dismissed_" + news.id, false))
+        List<News> news = getNews(); // Получаем список новостей
+        if (news == null) { // Проверяем на null
+            return null; // Или можно вернуть пустое значение
+        }
+
+        return news.stream()
+                .filter(newsItem -> newsItem.type == TYPE_SUGGESTION)
+                .filter(newsItem -> newsItem.id == null || !preferences.getBoolean("news_dismissed_" + newsItem.id, false))
                 .findAny()
-                .map(news -> {
+                .map(newsItem -> {
                     var suggestion = new TLRPC.TL_pendingSuggestion();
                     suggestion.title = new TLRPC.TL_textWithEntities();
-                    suggestion.title.text = news.title;
-                    suggestion.title.entities.addAll(parseBotAPIEntities(news.titleEntities, false));
+                    suggestion.title.text = newsItem.title;
+                    suggestion.title.entities.addAll(parseBotAPIEntities(newsItem.titleEntities, false));
                     suggestion.description = new TLRPC.TL_textWithEntities();
-                    suggestion.description.text = news.summary;
-                    suggestion.description.entities.addAll(parseBotAPIEntities(news.summaryEntities, false));
-                    suggestion.url = news.url;
-                    suggestion.suggestion = news.id;
+                    suggestion.description.text = newsItem.summary;
+                    suggestion.description.entities.addAll(parseBotAPIEntities(newsItem.summaryEntities, false));
+                    suggestion.url = newsItem.url;
+                    suggestion.suggestion = newsItem.id;
                     return suggestion;
                 })
                 .orElse(null);

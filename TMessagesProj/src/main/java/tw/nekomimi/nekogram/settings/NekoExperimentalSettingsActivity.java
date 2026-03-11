@@ -3,6 +3,7 @@ package tw.nekomimi.nekogram.settings;
 import android.os.CountDownTimer;
 import android.util.TypedValue;
 import android.view.View;
+import android.widget.EditText;
 import android.widget.TextView;
 
 import org.telegram.messenger.AndroidUtilities;
@@ -42,6 +43,7 @@ public class NekoExperimentalSettingsActivity extends BaseNekoSettingsActivity {
     private final int mapDriftingFixRow = rowId++;
     private final int contentRestrictionRow = rowId++;
     private final int showRPCErrorRow = rowId++;
+    private final int openaiApiKeyRow = rowId++;
 
     private final int checkUpdateRow = rowId++;
 
@@ -71,6 +73,7 @@ public class NekoExperimentalSettingsActivity extends BaseNekoSettingsActivity {
             items.add(UItem.asCheck(contentRestrictionRow, LocaleController.getString(R.string.IgnoreContentRestriction)).slug("contentRestriction").setChecked(NekoConfig.ignoreContentRestriction));
         }
         items.add(UItem.asCheck(showRPCErrorRow, LocaleController.getString(R.string.ShowRPCError), LocaleController.formatString(R.string.ShowRPCErrorException, "FILE_REFERENCE_EXPIRED")).slug("showRPCError").setChecked(NekoConfig.showRPCError));
+        items.add(TextSettingsCellFactory.of(openaiApiKeyRow, LocaleController.getString(R.string.OpenAIAPIKey), NekoConfig.openaiApiKey.isEmpty() ? LocaleController.getString(R.string.CloudflareCredentialsNotSet) : "••••••••").slug("openaiApiKey"));
         items.add(UItem.asShadow(null));
 
         items.add(TextDetailSettingsCellFactory.of(checkUpdateRow, LocaleController.getString(R.string.CheckUpdate), UpdateHelper.formatDateUpdate(SharedConfig.lastUpdateCheckTime)).slug("checkUpdate"));
@@ -188,6 +191,21 @@ public class NekoExperimentalSettingsActivity extends BaseNekoSettingsActivity {
             if (view instanceof TextCheckCell) {
                 ((TextCheckCell) view).setChecked(NekoConfig.showRPCError);
             }
+        } else if (id == openaiApiKeyRow) {
+            AlertDialog.Builder builder = new AlertDialog.Builder(getParentActivity(), resourcesProvider);
+            builder.setTitle(LocaleController.getString(R.string.OpenAIAPIKey));
+            final EditText editText = new EditText(getParentActivity());
+            editText.setText(NekoConfig.openaiApiKey);
+            editText.setHint("sk-...");
+            builder.setView(editText);
+            builder.setPositiveButton(LocaleController.getString(R.string.OK), (dialog, which) -> {
+                String key = editText.getText().toString().trim();
+                NekoConfig.setOpenaiApiKey(key);
+                item.textValue = key.isEmpty() ? LocaleController.getString(R.string.CloudflareCredentialsNotSet) : "••••••••";
+                listView.adapter.notifyItemChanged(position, PARTIAL);
+            });
+            builder.setNegativeButton(LocaleController.getString(R.string.Cancel), null);
+            builder.show();
         } else if (id == downloadSpeedBoostRow) {
             ArrayList<String> arrayList = new ArrayList<>();
             ArrayList<Integer> types = new ArrayList<>();

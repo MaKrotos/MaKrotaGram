@@ -107,6 +107,7 @@ import android.widget.LinearLayout;
 import android.widget.Space;
 import android.widget.TextView;
 
+import org.telegram.ui.MagicActivity;
 import androidx.annotation.DrawableRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -10290,6 +10291,8 @@ public class ChatActivity extends BaseFragment implements
         selectedMessagesCountTextView.setOnTouchListener((v, event) -> true);
         actionMode.addView(selectedMessagesCountTextView, LayoutHelper.createLinear(0, LayoutHelper.MATCH_PARENT, 1.0f, 65, 0, 0, 0));
 
+        ActionBarMenuItem magicItem = null; // <-- объявляем здесь
+
         if (currentEncryptedChat == null) {
             final boolean isSavedMessages = getDialogId() == getUserConfig().getClientUserId() && (chatMode == 0 || chatMode == MODE_SAVED);
             actionModeViews.add(actionMode.addItemWithWidth(save_to, R.drawable.msg_download, AndroidUtilities.dp(54), LocaleController.getString(R.string.SaveToMusic)));
@@ -10303,6 +10306,16 @@ public class ChatActivity extends BaseFragment implements
                 actionModeViews.add(actionMode.addItemWithWidth(forward, R.drawable.msg_forward, AndroidUtilities.dp(54), LocaleController.getString(R.string.Forward)));
                 if (NekoConfig.showNoQuoteForward) actionModeViews.add(actionMode.addItemWithWidth(ForwardItem.ID_FORWARD_NOQUOTE, R.drawable.msg_forward, AndroidUtilities.dp(54), LocaleController.getString(R.string.NoQuoteForward)));
             }
+
+            // === НОВАЯ КНОПКА MAGIC ===
+            int MAGIC_ACTION_ID = 9999;
+            magicItem = actionMode.addItemWithWidth(MAGIC_ACTION_ID, R.drawable.ic_ab_magic, AndroidUtilities.dp(54), "Magic");
+            actionModeViews.add(magicItem);
+            magicItem.setOnClickListener(v -> {
+                showMagicOptions();
+            });
+            // =========================
+
             actionModeViews.add(actionMode.addItemWithWidth(share, R.drawable.msg_shareout, AndroidUtilities.dp(54), LocaleController.getString(R.string.ShareFile)));
             actionModeViews.add(actionMode.addItemWithWidth(delete, R.drawable.msg_delete, AndroidUtilities.dp(54), LocaleController.getString(R.string.Delete)));
         } else {
@@ -10311,14 +10324,19 @@ public class ChatActivity extends BaseFragment implements
             actionModeViews.add(actionMode.addItemWithWidth(copy, R.drawable.msg_copy, AndroidUtilities.dp(54), LocaleController.getString(R.string.Copy)));
             actionModeViews.add(actionMode.addItemWithWidth(delete, R.drawable.msg_delete, AndroidUtilities.dp(54), LocaleController.getString(R.string.Delete)));
         }
+
         actionMode.setItemVisibility(edit, canEditMessagesCount == 1 && selectedMessagesIds[0].size() + selectedMessagesIds[1].size() == 1 ? View.VISIBLE : View.GONE);
         actionMode.setItemVisibility(copy, !isPeerNoForwards() && selectedMessagesCanCopyIds[0].size() + selectedMessagesCanCopyIds[1].size() != 0 ? View.VISIBLE : View.GONE);
         actionMode.setItemVisibility(star, selectedMessagesCanStarIds[0].size() + selectedMessagesCanStarIds[1].size() != 0 ? View.VISIBLE : View.GONE);
         actionMode.setItemVisibility(delete, cantDeleteMessagesCount == 0 ? View.VISIBLE : View.GONE);
         actionMode.setItemVisibility(tag_message, getUserConfig().isPremium() ? View.VISIBLE : View.GONE);
         actionMode.setItemVisibility(share, View.GONE);
-    }
 
+        // Скрываем кнопку Magic по умолчанию, показываем только если есть выбранные сообщения
+        if (magicItem != null) {
+            magicItem.setVisibility(selectedMessagesIds[0].size() + selectedMessagesIds[1].size() > 0 ? View.VISIBLE : View.GONE);
+        }
+    }
     private void hideTagSelector() {
         if (tagSelector == null) return;
         final ReactionsContainerLayout thisTagSelector = tagSelector;
@@ -45609,6 +45627,37 @@ public class ChatActivity extends BaseFragment implements
         }
 
         //}
+    }
+
+    private void showMagicOptions() {
+        if (getParentActivity() == null || selectedMessagesIds[0].size() + selectedMessagesIds[1].size() == 0) {
+            return;
+        }
+
+        // Собираем выбранные сообщения
+        ArrayList<MessageObject> selectedMessages = new ArrayList<>();
+
+        for (int i = 0; i < selectedMessagesIds[0].size(); i++) {
+            selectedMessages.add(selectedMessagesIds[0].valueAt(i));
+        }
+
+        for (int i = 0; i < selectedMessagesIds[1].size(); i++) {
+            selectedMessages.add(selectedMessagesIds[1].valueAt(i));
+        }
+
+        if (selectedMessages.isEmpty()) {
+            return;
+        }
+
+        // Создаем новый фрагмент MagicActivity
+        MagicActivity magicActivity = new MagicActivity();
+        magicActivity.setSelectedMessages(selectedMessages);
+
+        // Открываем новое окно
+        presentFragment(magicActivity);
+
+        // Сбрасываем режим выделения
+        clearSelectionMode();
     }
 
     private int getMergedVisibleBlurredPositions(List<RectF> positions) {

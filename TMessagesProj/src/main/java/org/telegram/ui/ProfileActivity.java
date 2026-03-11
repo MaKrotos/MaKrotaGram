@@ -20,7 +20,9 @@ import static org.telegram.messenger.LocaleController.getString;
 import static org.telegram.ui.Stars.StarGiftSheet.replaceUnderstood;
 import static org.telegram.ui.Stars.StarsIntroActivity.formatStarsAmountShort;
 import static org.telegram.ui.bots.AffiliateProgramFragment.percents;
-
+import org.telegram.messenger.openAI.UserPromptService;
+import org.telegram.ui.Components.EditTextBoldCursor;
+import org.telegram.ui.Components.Bulletin;
 import android.Manifest;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
@@ -128,7 +130,6 @@ import org.telegram.PhoneFormat.PhoneFormat;
 import org.telegram.messenger.AccountInstance;
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.ApplicationLoader;
-import org.telegram.messenger.BuildConfig;
 import org.telegram.messenger.AuthTokensHelper;
 import org.telegram.messenger.BillingController;
 import org.telegram.messenger.BirthdayController;
@@ -245,8 +246,6 @@ import org.telegram.ui.Components.LayoutHelper;
 import org.telegram.ui.Components.LinkSpanDrawable;
 import org.telegram.ui.Components.MediaActivity;
 import org.telegram.ui.Components.MessagePrivateSeenView;
-import org.telegram.ui.Components.ProfileActionsView;
-import org.telegram.ui.Components.ProfileGalleryBlurView;
 import org.telegram.ui.Components.Paint.PersistColorPalette;
 import org.telegram.ui.Components.Premium.LimitPreviewView;
 import org.telegram.ui.Components.Premium.PremiumFeatureBottomSheet;
@@ -254,6 +253,8 @@ import org.telegram.ui.Components.Premium.PremiumGradient;
 import org.telegram.ui.Components.Premium.PremiumPreviewBottomSheet;
 import org.telegram.ui.Components.Premium.ProfilePremiumCell;
 import org.telegram.ui.Components.Premium.boosts.UserSelectorBottomSheet;
+import org.telegram.ui.Components.ProfileActionsView;
+import org.telegram.ui.Components.ProfileGalleryBlurView;
 import org.telegram.ui.Components.ProfileGalleryView;
 import org.telegram.ui.Components.ProfileGooeyView;
 import org.telegram.ui.Components.ProfileMusicView;
@@ -327,7 +328,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
@@ -336,6 +336,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
+import me.vkryl.android.animator.BoolAnimator;
 import tw.nekomimi.nekogram.BackButtonMenuRecent;
 import tw.nekomimi.nekogram.NekoConfig;
 import tw.nekomimi.nekogram.SimpleTextViewSwitcher;
@@ -343,7 +344,6 @@ import tw.nekomimi.nekogram.helpers.PopupHelper;
 import tw.nekomimi.nekogram.helpers.remote.ConfigHelper;
 import tw.nekomimi.nekogram.settings.NekoSettingsActivity;
 import tw.nekomimi.nekogram.translator.Translator;
-import me.vkryl.android.animator.BoolAnimator;
 
 public class ProfileActivity extends BaseFragment implements NotificationCenter.NotificationCenterDelegate, DialogsActivity.DialogsActivityDelegate, SharedMediaLayout.SharedMediaPreloaderDelegate, ImageUpdater.ImageUpdaterDelegate, SharedMediaLayout.Delegate, MainTabsActivity.TabFragmentDelegate {
     private final static int PHONE_OPTION_CALL = 0,
@@ -606,6 +606,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
     private final static int delete_group = 45;
     private final static int enable_no_forwards = 46;
     private final static int disable_no_forwards = 47;
+    private final static int user_prompt = 100;
 
     private Rect rect = new Rect();
 
@@ -2967,6 +2968,8 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                     }
                 } else if (id == add_photo) {
                     onWriteButtonClick();
+                } else if (id == user_prompt) {
+                    showUserPromptDialog();
                 }
             }
         });
@@ -12104,6 +12107,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                                 otherItem.addSubItem(block_contact, R.drawable.msg_retry, LocaleController.getString(R.string.BotRestart));
                             }
                         } else {
+                            otherItem.addSubItem(user_prompt, R.drawable.msg_edit, LocaleController.getString("UserPrompt", R.string.UserPrompt));
                             otherItem.addSubItem(block_contact, !userBlocked ? R.drawable.msg_block : R.drawable.msg_block, !userBlocked ? LocaleController.getString(R.string.BlockContact) : LocaleController.getString(R.string.Unblock));
                         }
                     }
@@ -12114,6 +12118,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                     if (!TextUtils.isEmpty(user.phone)) {
                         otherItem.addSubItem(share_contact, R.drawable.msg_share, LocaleController.getString(R.string.ShareContact));
                     }
+                    otherItem.addSubItem(user_prompt, R.drawable.msg_edit, LocaleController.getString("UserPrompt", R.string.UserPrompt));
                     otherItem.addSubItem(block_contact, !userBlocked ? R.drawable.msg_block : R.drawable.msg_block, !userBlocked ? LocaleController.getString(R.string.BlockContact) : LocaleController.getString(R.string.Unblock));
                     otherItem.addSubItem(edit_contact, R.drawable.msg_edit, LocaleController.getString(R.string.EditContact));
                     otherItem.addSubItem(delete_contact, R.drawable.msg_delete, LocaleController.getString(R.string.DeleteContact));
@@ -16962,4 +16967,75 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
     public void onParentScrollToTop() {
         listView.smoothScrollToPosition(0);
     }
+
+    private void showUserPromptDialog() {
+        if (userId == 0 || getParentActivity() == null) {
+            return;
+        }
+
+        TLRPC.User user = getMessagesController().getUser(userId);
+        if (user == null) return;
+
+        String userName = UserObject.getUserName(user);
+        String currentPrompt = UserPromptService.getInstance(currentAccount).getPrompt(userId);
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(getParentActivity(), resourcesProvider);
+        builder.setTitle(LocaleController.formatString("PromptForUser", R.string.PromptForUser, userName));
+
+        LinearLayout container = new LinearLayout(getParentActivity());
+        container.setOrientation(LinearLayout.VERTICAL);
+        container.setPadding(AndroidUtilities.dp(24), AndroidUtilities.dp(8), AndroidUtilities.dp(24), AndroidUtilities.dp(8));
+
+        EditTextBoldCursor editText = new EditTextBoldCursor(getParentActivity());
+        editText.setText(currentPrompt);
+        editText.setHint(LocaleController.getString("PromptHint", R.string.PromptHint));
+        editText.setSelection(editText.length());
+        editText.setSingleLine(false);
+        editText.setMaxLines(5);
+        editText.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16);
+        editText.setTextColor(Theme.getColor(Theme.key_dialogTextBlack));
+        editText.setHintTextColor(Theme.getColor(Theme.key_dialogTextHint));
+        editText.setCursorColor(Theme.getColor(Theme.key_dialogTextBlack));
+
+        container.addView(editText, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
+
+        builder.setView(container);
+
+        builder.setPositiveButton(LocaleController.getString("Save", R.string.Save), (dialog, which) -> {
+            String newPrompt = editText.getText().toString().trim();
+            if (!newPrompt.isEmpty()) {
+                UserPromptService.getInstance(currentAccount).savePrompt(userId, newPrompt);
+            } else {
+                UserPromptService.getInstance(currentAccount).deletePrompt(userId);
+            }
+        });
+
+        builder.setNeutralButton(LocaleController.getString("Clear", R.string.Clear), (dialog, which) -> {
+            if (!currentPrompt.isEmpty()) {
+                UserPromptService.getInstance(currentAccount).deletePrompt(userId);
+            }
+        });
+
+        builder.setNegativeButton(LocaleController.getString("Cancel", R.string.Cancel), null);
+
+        AlertDialog dialog = builder.create();
+        dialog.show();
+
+        // Настраиваем цвета кнопок
+        TextView positiveButton = (TextView) dialog.getButton(DialogInterface.BUTTON_POSITIVE);
+        if (positiveButton != null) {
+            positiveButton.setTextColor(Theme.getColor(Theme.key_dialogTextBlue2));
+        }
+
+        TextView neutralButton = (TextView) dialog.getButton(DialogInterface.BUTTON_NEUTRAL);
+        if (neutralButton != null) {
+            neutralButton.setTextColor(Theme.getColor(Theme.key_text_RedBold));
+        }
+
+        // Показываем клавиатуру
+        editText.requestFocus();
+        AndroidUtilities.showKeyboard(editText);
+    }
+
+
 }
