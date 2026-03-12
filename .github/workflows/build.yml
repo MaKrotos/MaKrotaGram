@@ -44,6 +44,22 @@ jobs:
 
           rm /tmp/google-services.json
 
+      - name: Create Extra.java
+        run: |
+          # Создаем директорию, если её нет
+          mkdir -p TMessagesProj/src/main/java/tw/nekomimi/nekogram
+
+          # Декодируем и сохраняем файл
+          echo "${{ secrets.EXTRA_JAVA_BASE64 }}" | base64 --decode > TMessagesProj/src/main/java/tw/nekomimi/nekogram/Extra.java
+
+          # Проверяем, что файл создан
+          if [ -f "TMessagesProj/src/main/java/tw/nekomimi/nekogram/Extra.java" ]; then
+            echo "✅ Extra.java успешно создан"
+          else
+            echo "❌ Ошибка: Extra.java не был создан"
+            exit 1
+          fi
+
       - name: Build APK
         run: ./gradlew assembleRelease
         env:
