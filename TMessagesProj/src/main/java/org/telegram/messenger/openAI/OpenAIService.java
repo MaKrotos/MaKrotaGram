@@ -53,7 +53,8 @@ public class OpenAIService {
                     "2. Варианты должны быть РАЗНЫМИ по стилю и содержанию\n" +
                     "3. Учитывай контекст беседы и отношения между собеседниками\n" +
                     "4. Если есть изображения, просто учитывай их наличие в контексте\n" +
-                    "5. Варианты должны звучать естественно, как будто их пишет реальный человек\n\n" +
+                    "5. Варианты должны звучать естественно, как будто их пишет реальный человек\n" +
+                    "6. Варианты должны быть более человечными, в обычном разговорном стиле. Не ставь точки в конце предложений, если это не вопрос или восклицание. Используй естественный язык, как в мессенджерах.\n\n" +
                     "Отвечай ТОЛЬКО в формате JSON со следующими полями:\n" +
                     "{\n" +
                     "  \"suggestions\": [\n" +
@@ -106,10 +107,6 @@ public class OpenAIService {
         }
         return apiKey;
     }
-
-
-
-
 
     /**
      * Получает базовый промпт из глобальных настроек NekoConfig
@@ -172,7 +169,6 @@ public class OpenAIService {
             long interlocutorId = getInterlocutorId(messages);
 
             // Получаем пользовательский промпт для СОБЕСЕДНИКА, если он есть
-
             String userSpecificPrompt = interlocutorId > 0 ? UserPromptService.getInstance(currentAccount).getPrompt(interlocutorId) : null;
 
             // Получаем базовый промпт из глобальных настроек
@@ -197,7 +193,7 @@ public class OpenAIService {
 
             // Если есть какие-то промпты, добавляем их в запрос
             if (combinedPrompt.length() > 0) {
-                combinedPrompt.append("(Не забудь предложить минимум 3-5 разных вариантов ответа ОТ ИМЕНИ СОБЕСЕДНИКА, учитывая эти инструкции)");
+                combinedPrompt.append("(Не забудь предложить минимум 3-5 разных вариантов ответа ОТ ИМЕНИ СОБЕСЕДНИКА, учитывая эти инструкции. Используй обычный разговорный стиль, не ставь точки в конце предложений, если это не вопрос или восклицание.)");
 
                 JSONObject userPromptMessage = new JSONObject();
                 userPromptMessage.put("role", "user");
@@ -222,8 +218,31 @@ public class OpenAIService {
                 }
             }
 
+            // Определяем, кто написал последнее сообщение
+            MessageObject lastMessage = messages.get(messages.size() - 1);
+            long lastMessageSenderId = lastMessage.getSenderId();
+            boolean lastMessageIsFromMe = lastMessageSenderId == myId;
+            boolean lastMessageIsFromInterlocutor = lastMessageSenderId == interlocutorId;
+
+            String lastMessageSenderName;
+            if (lastMessageIsFromMe) {
+                lastMessageSenderName = myName + " (Я)";
+            } else if (lastMessageIsFromInterlocutor) {
+                lastMessageSenderName = interlocutorName + " (СОБЕСЕДНИК)";
+            } else {
+                lastMessageSenderName = getSenderNameFromId(lastMessageSenderId) + " (УЧАСТНИК)";
+            }
+
             conversationHistory.append("========== ПОМОЩЬ В ОТВЕТЕ ==========\n\n");
-            conversationHistory.append("Помоги ").append(interlocutorName).append(" придумать, что написать дальше.\n\n");
+
+            // ЧЕТКОЕ ОПРЕДЕЛЕНИЕ РОЛЕЙ
+            conversationHistory.append("🔴 РОЛИ УЧАСТНИКОВ:\n");
+            conversationHistory.append("   👤 Я (бот): ").append(myName).append("\n");
+            conversationHistory.append("   🗣 КОМУ ПОМОГАЕМ: ").append(interlocutorName).append("\n");
+            if (!lastMessageIsFromInterlocutor && !lastMessageIsFromMe) {
+                conversationHistory.append("   👥 ДРУГОЙ УЧАСТНИК: ").append(lastMessageSenderName).append("\n");
+            }
+            conversationHistory.append("\n");
 
             // Добавляем информацию о промптах, если они есть
             if (userSpecificPrompt != null) {
@@ -246,29 +265,24 @@ public class OpenAIService {
             for (int i = 0; i < messageCount; i++) {
                 MessageObject message = messages.get(i);
 
-                // Получаем имя отправителя
-                String sender = getSenderName(message, myId, myName, interlocutorName);
+                // Получаем имя отправителя с четкой маркировкой
+                String sender = getSenderName(message, myId, myName, interlocutorName, interlocutorId);
 
                 // Получаем текст сообщения
                 String text = getMessageText(message);
 
-                // ЖЕСТКАЯ МАРКИРОВКА последних сообщений
+                // Маркировка важных сообщений
                 if (i == messageCount - 1) {
                     conversationHistory.append("🔴🔴🔴 [ПОСЛЕДНЕЕ СООБЩЕНИЕ] 🔴🔴🔴\n");
-                    conversationHistory.append("👉 ");
                 } else if (i == messageCount - 2) {
                     conversationHistory.append("🟠🟠🟠 [ПРЕДПОСЛЕДНЕЕ] 🟠🟠🟠\n");
-                    conversationHistory.append("👉 ");
                 } else if (i == messageCount - 3) {
                     conversationHistory.append("🟡🟡🟡 [ТРЕТЬЕ С КОНЦА] 🟡🟡🟡\n");
-                    conversationHistory.append("👉 ");
-                } else {
-                    conversationHistory.append("⚪️ ");
                 }
 
-                conversationHistory.append(sender).append(": ").append(text).append("\n");
+                conversationHistory.append("👉 ").append(sender).append(": ").append(text).append("\n");
 
-                // Добавляем дополнительную информацию о медиа (только текстовые пометки, без отправки файлов)
+                // Добавляем дополнительную информацию о медиа
                 if (message.isPhoto()) {
                     conversationHistory.append("      📸 [ФОТОГРАФИЯ]\n");
                 } else if (message.isVideo()) {
@@ -286,47 +300,41 @@ public class OpenAIService {
                 conversationHistory.append("\n");
             }
 
-            // АНАЛИЗ ПОСЛЕДНЕГО СООБЩЕНИЯ
-            MessageObject lastMsg = messages.get(messageCount - 1);
-            boolean lastMessageIsFromInterlocutor = lastMsg.getSenderId() == interlocutorId;
-            String lastSender = getSenderName(lastMsg, myId, myName, interlocutorName);
-
-            conversationHistory.append("\n========== ⚠️ КРИТИЧЕСКИЙ АНАЛИЗ ⚠️ ==========\n");
-            conversationHistory.append("🔍 ПОСЛЕДНЕЕ СООБЩЕНИЕ НАПИСАЛ: ").append(lastSender.toUpperCase()).append("\n");
+            // АНАЛИЗ СИТУАЦИИ - КРИТИЧЕСКИ ВАЖНО
+            conversationHistory.append("\n========== ⚠️ АНАЛИЗ ТЕКУЩЕЙ СИТУАЦИИ ⚠️ ==========\n");
+            conversationHistory.append("📨 ПОСЛЕДНЕЕ СООБЩЕНИЕ НАПИСАЛ: ").append(lastMessageSenderName.toUpperCase()).append("\n\n");
 
             if (lastMessageIsFromInterlocutor) {
-                conversationHistory.append("❗️❗️❗️ ПОСЛЕДНЕЕ СООБЩЕНИЕ ОТ ").append(interlocutorName.toUpperCase()).append(" ❗️❗️❗️\n");
-                conversationHistory.append("👉 Это значит, что ").append(interlocutorName).append(" уже написал сообщение, и теперь нужно ПРОДОЛЖИТЬ разговор\n");
-                conversationHistory.append("👉 ").append(interlocutorName).append(" нужно добавить ЕЩЕ ОДНО сообщение (развить тему, задать вопрос, отреагировать)\n");
+                conversationHistory.append("❗️ СИТУАЦИЯ: ").append(interlocutorName).append(" УЖЕ НАПИСАЛ СООБЩЕНИЕ\n");
+                conversationHistory.append("👉 ").append(interlocutorName).append(" нужно ПРОДОЛЖИТЬ разговор - добавить еще одно сообщение\n");
+                conversationHistory.append("👉 Задача: развить тему, задать вопрос, отреагировать на что-то\n");
             } else {
-                conversationHistory.append("❗️❗️❗️ ПОСЛЕДНЕЕ СООБЩЕНИЕ ОТ СОБЕСЕДНИКА ❗️❗️❗️\n");
-                conversationHistory.append("👉 Это значит, что ").append(interlocutorName).append(" нужно ОТВЕТИТЬ на это сообщение\n");
-                conversationHistory.append("👉 ").append(interlocutorName).append(" нужно отреагировать на то, что написал ").append(lastSender).append("\n");
+                conversationHistory.append("❗️ СИТУАЦИЯ: ").append(interlocutorName).append(" должен ОТВЕТИТЬ на сообщение\n");
+                conversationHistory.append("👉 ").append(interlocutorName).append(" нужно отреагировать на то, что написал ").append(lastMessageSenderName).append("\n");
+                conversationHistory.append("👉 Задача: дать прямой ответ на последнее сообщение\n");
             }
 
             conversationHistory.append("\n========== ЧТО НУЖНО СДЕЛАТЬ ==========\n");
-            conversationHistory.append("👤 Кому помогаем: ").append(interlocutorName).append("\n");
+            conversationHistory.append("👤 ОТ ИМЕНИ КОГО ОТВЕЧАЕМ: ").append(interlocutorName.toUpperCase()).append("\n");
 
             if (lastMessageIsFromInterlocutor) {
-                conversationHistory.append("📝 СИТУАЦИЯ: ").append(interlocutorName).append(" уже написал сообщение выше, теперь нужно ДОБАВИТЬ еще одно\n");
-                conversationHistory.append("🎯 ЗАДАЧА: Предложить варианты ПРОДОЛЖЕНИЯ разговора от имени ").append(interlocutorName).append(" (новые мысли, вопросы, реакции)\n");
+                conversationHistory.append("📝 ТИП ОТВЕТА: ПРОДОЛЖЕНИЕ (добавить сообщение после своего же)\n");
+                conversationHistory.append("🎯 ЦЕЛЬ: предложить варианты того, что ").append(interlocutorName).append(" МОЖЕТ ДОБАВИТЬ\n");
             } else {
-                conversationHistory.append("📝 СИТУАЦИЯ: ").append(lastSender).append(" написал сообщение, ").append(interlocutorName).append(" нужно ОТВЕТИТЬ\n");
-                conversationHistory.append("🎯 ЗАДАЧА: Предложить варианты ОТВЕТА от имени ").append(interlocutorName).append(" на сообщение от ").append(lastSender).append("\n");
+                conversationHistory.append("📝 ТИП ОТВЕТА: ОТВЕТ НА СООБЩЕНИЕ\n");
+                conversationHistory.append("🎯 ЦЕЛЬ: предложить варианты того, что ").append(interlocutorName).append(" МОЖЕТ ОТВЕТИТЬ\n");
             }
 
             conversationHistory.append("\n========== ТРЕБОВАНИЯ К ОТВЕТУ ==========\n");
-            conversationHistory.append("✅ Предложи 3-5 РАЗНЫХ вариантов того, что ").append(interlocutorName).append(" МОЖЕТ НАПИСАТЬ\n");
-            conversationHistory.append("✅ Варианты должны быть ОТ ИМЕНИ ").append(interlocutorName.toUpperCase()).append(" (я, мне, моё)\n");
-            conversationHistory.append("✅ НЕ предлагай варианты от имени AI\n");
-            conversationHistory.append("✅ НЕ пиши 'пользователь может написать' - пиши сразу текст сообщения\n");
+            conversationHistory.append("✅ Предложи 3-5 РАЗНЫХ вариантов того, что ").append(interlocutorName.toUpperCase()).append(" МОЖЕТ НАПИСАТЬ\n");
+            conversationHistory.append("✅ Варианты должны быть ОТ ИМЕНИ ").append(interlocutorName.toUpperCase()).append(" (используй 'я', 'мне', 'моё')\n");
+            conversationHistory.append("✅ НЕ предлагай варианты от имени AI или от третьего лица\n");
             conversationHistory.append("\n");
-            conversationHistory.append("❌ НЕПРАВИЛЬНО: 'Пользователь может согласиться и написать \"Да\"'\n");
-            conversationHistory.append("✅ ПРАВИЛЬНО: 'Да, я согласен'\n");
+            conversationHistory.append("❌ НЕПРАВИЛЬНО (от третьего лица): 'Пользователь может написать \"Привет\"'\n");
+            conversationHistory.append("✅ ПРАВИЛЬНО (от первого лица): 'Привет, как дела?'\n");
             conversationHistory.append("\n");
-            conversationHistory.append("❌ НЕПРАВИЛЬНО: 'AI предлагает спросить \"Как дела?\"'\n");
-            conversationHistory.append("✅ ПРАВИЛЬНО: 'Как дела?'\n");
-            conversationHistory.append("\n");
+            conversationHistory.append("❌ НЕПРАВИЛЬНО (AI предлагает): 'Я бы посоветовал спросить \"Как погода?\"'\n");
+            conversationHistory.append("✅ ПРАВИЛЬНО (прямой текст): 'Как погода?'\n");
 
             // Добавляем напоминание о промптах, если они есть
             if (userSpecificPrompt != null) {
@@ -457,7 +465,7 @@ public class OpenAIService {
                     if (name != null) {
                         history.append("  • ").append(name);
                         if (id == UserConfig.getInstance(currentAccount).getClientUserId()) {
-                            history.append(" ⬅️ ЭТО Я (БОТ)");
+                            history.append(" (ЭТО Я - БОТ)");
                         }
                         history.append("\n");
                     }
@@ -479,33 +487,25 @@ public class OpenAIService {
         }
     }
 
-    // Функция получения имени отправителя (обновленная)
-    private String getSenderName(MessageObject message, long myId, String myName, String interlocutorName) {
+    // ОБНОВЛЕННАЯ функция получения имени отправителя с четкой маркировкой
+    private String getSenderName(MessageObject message, long myId, String myName, String interlocutorName, long interlocutorId) {
         try {
             long senderId = message.getSenderId();
 
             if (senderId == myId) {
                 // Это наше сообщение (бота)
-                return myName + " (БОТ)";
-            } else if (senderId == getInterlocutorIdFromMessage(message, myId)) {
+                return "👤 " + myName + " (Я - бот)";
+            } else if (senderId == interlocutorId) {
                 // Это сообщение от собеседника (кому помогаем)
-                return interlocutorName + " (СОБЕСЕДНИК - помогаем)";
+                return "🗣 " + interlocutorName + " (СОБЕСЕДНИК - ему помогаем)";
             } else {
                 // Сообщение от другого участника
-                return getSenderNameFromId(senderId) + " (УЧАСТНИК)";
+                return "👥 " + getSenderNameFromId(senderId) + " (УЧАСТНИК)";
             }
         } catch (Exception e) {
             FileLog.e("Error getting sender name: " + e.getMessage());
-            return message.isOut() ? "БОТ" : "СОБЕСЕДНИК";
+            return message.isOut() ? "👤 Я (бот)" : "🗣 СОБЕСЕДНИК";
         }
-    }
-
-    // Вспомогательный метод для получения ID собеседника из сообщения
-    private long getInterlocutorIdFromMessage(MessageObject message, long myId) {
-        if (message.getSenderId() != myId) {
-            return message.getSenderId();
-        }
-        return 0;
     }
 
     private String getSenderNameFromId(long id) {
