@@ -22,12 +22,17 @@ public class AISettings {
     // Модели по умолчанию
     public static final String DEFAULT_OPENAI_MODEL = "gpt-3.5-turbo";
     public static final String DEFAULT_GEMINI_MODEL = "gemini-pro";
+    public static final String DEFAULT_LLAMA_MODEL = "meta-llama/Llama-3.3-70B-Instruct-Turbo";
+    private static final String KEY_LLAMA_API_KEY = "llama_api_key";
+    private static final String KEY_LLAMA_MODEL = "llama_model";
+
     
     // Доступные сервисы
     public enum AIServiceType {
         OPENAI("OpenAI"),
         GEMINI("Google Gemini"),
-        CUSTOM("Custom API");
+        CUSTOM("Custom API"),
+        LLAMA("Llama (Together.ai)");
         
         private final String displayName;
         
@@ -337,6 +342,8 @@ public class AISettings {
         public String customModel = "";
         public String customApiKey = "";
         public String systemPrompt = "";
+        public String llamaApiKey = "";
+        public String llamaModel = DEFAULT_LLAMA_MODEL;
         
         /**
          * Создает копию объекта

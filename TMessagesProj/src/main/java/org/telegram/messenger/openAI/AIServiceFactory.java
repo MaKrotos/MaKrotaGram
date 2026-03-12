@@ -19,24 +19,18 @@ public class AIServiceFactory {
     }
 
     public static BaseAIService createService(AISettings.AIServiceType type, int account) {
-        // Пытаемся получить существующий экземпляр
-        String key = type.name() + "_" + account;
-
         switch (type) {
-            case GEMINI:
-                if (!serviceInstances.containsKey(type)) {
-                    serviceInstances.put(type, new GeminiService(account));
-                }
-                return serviceInstances.get(type);
-
             case OPENAI:
+                return new OpenAIService(account);
+            case GEMINI:
+                return new GeminiService(account);
+            case LLAMA:
+                return new LlamaService(account);
             default:
-                if (!serviceInstances.containsKey(type)) {
-                    serviceInstances.put(type, new OpenAIService(account));
-                }
-                return serviceInstances.get(type);
+                return new OpenAIService(account);
         }
     }
+
 
     public static boolean hasValidConfig() {
         AISettings settings = new AISettings();
