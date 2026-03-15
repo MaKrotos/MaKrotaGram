@@ -1,4 +1,4 @@
-package tw.nekomimi.nekogram.helpers;
+package tw.fdw.makrotagram.helpers;
 
 import static org.telegram.messenger.AndroidUtilities.dp;
 
@@ -44,7 +44,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import tw.nekomimi.nekogram.DatacenterPopupWrapper;
+import tw.fdw.makrotagram.DatacenterPopupWrapper;
 
 public class PopupHelper {
 

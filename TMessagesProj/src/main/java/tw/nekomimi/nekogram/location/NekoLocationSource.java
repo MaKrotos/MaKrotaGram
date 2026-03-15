@@ -1,4 +1,4 @@
-package tw.nekomimi.nekogram.location;
+package tw.fdw.makrotagram.location;
 
 import android.Manifest;
 import android.app.Activity;

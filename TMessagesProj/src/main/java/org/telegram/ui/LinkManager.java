@@ -72,8 +72,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.regex.Matcher;
 
-import tw.nekomimi.nekogram.helpers.SettingsHelper;
-import tw.nekomimi.nekogram.helpers.UserHelper;
+import tw.fdw.makrotagram.helpers.SettingsHelper;
+import tw.fdw.makrotagram.helpers.UserHelper;
 
 public class LinkManager {
 

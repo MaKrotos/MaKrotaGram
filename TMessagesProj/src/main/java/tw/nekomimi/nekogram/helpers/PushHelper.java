@@ -1,4 +1,4 @@
-package tw.nekomimi.nekogram.helpers;
+package tw.fdw.makrotagram.helpers;
 
 import com.google.gson.Gson;
 import com.google.gson.annotations.Expose;
@@ -10,8 +10,8 @@ import org.telegram.messenger.NotificationCenter;
 import org.telegram.messenger.SharedConfig;
 import org.telegram.messenger.UserConfig;
 
-import tw.nekomimi.nekogram.helpers.remote.ConfigHelper;
-import tw.nekomimi.nekogram.helpers.remote.UpdateHelper;
+import tw.fdw.makrotagram.helpers.remote.ConfigHelper;
+import tw.fdw.makrotagram.helpers.remote.UpdateHelper;
 
 public class PushHelper {
 

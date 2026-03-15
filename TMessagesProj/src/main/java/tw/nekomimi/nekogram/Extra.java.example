@@ -1,11 +1,11 @@
-package tw.nekomimi.nekogram;
+package tw.fdw.makrotagram;
 
 import org.telegram.messenger.BuildConfig;
 
 import java.util.List;
 
-import tw.nekomimi.nekogram.helpers.UserHelper;
-import tw.nekomimi.nekogram.helpers.remote.ConfigHelper;
+import tw.fdw.makrotagram.helpers.UserHelper;
+import tw.fdw.makrotagram.helpers.remote.ConfigHelper;
 
 public class Extra {
     // https://core.telegram.org/api/obtaining_api_id

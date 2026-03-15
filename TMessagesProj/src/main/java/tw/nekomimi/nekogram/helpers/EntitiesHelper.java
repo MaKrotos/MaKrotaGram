@@ -1,4 +1,4 @@
-package tw.nekomimi.nekogram.helpers;
+package tw.fdw.makrotagram.helpers;
 
 import android.text.Spannable;
 import android.text.SpannableString;
@@ -15,7 +15,7 @@ import org.telegram.ui.Components.URLSpanReplacement;
 import java.util.ArrayList;
 import java.util.regex.Pattern;
 
-import tw.nekomimi.nekogram.NekoConfig;
+import tw.fdw.makrotagram.NekoConfig;
 
 public class EntitiesHelper {
     private static final Pattern[] PATTERNS = new Pattern[]{

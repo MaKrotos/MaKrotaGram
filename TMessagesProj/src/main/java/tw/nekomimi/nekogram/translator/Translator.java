@@ -1,4 +1,4 @@
-package tw.nekomimi.nekogram.translator;
+package tw.fdw.makrotagram.translator;
 
 import android.content.Context;
 import android.text.TextUtils;
@@ -40,9 +40,9 @@ import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 import app.nekogram.translator.Http429Exception;
-import tw.nekomimi.nekogram.NekoConfig;
-import tw.nekomimi.nekogram.helpers.PopupHelper;
-import tw.nekomimi.nekogram.settings.NekoLanguagesSelectActivity;
+import tw.fdw.makrotagram.NekoConfig;
+import tw.fdw.makrotagram.helpers.PopupHelper;
+import tw.fdw.makrotagram.settings.NekoLanguagesSelectActivity;
 
 public class Translator {
 

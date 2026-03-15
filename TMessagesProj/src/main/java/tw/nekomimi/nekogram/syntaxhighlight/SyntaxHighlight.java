@@ -1,4 +1,4 @@
-package tw.nekomimi.nekogram.syntaxhighlight;
+package tw.fdw.makrotagram.syntaxhighlight;
 
 import android.graphics.Color;
 import android.text.Spannable;

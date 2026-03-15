@@ -1,4 +1,4 @@
-package tw.nekomimi.nekogram.settings;
+package tw.fdw.makrotagram.settings;
 
 import android.content.Context;
 import android.text.SpannableStringBuilder;
@@ -42,10 +42,10 @@ import java.util.Locale;
 
 import me.vkryl.android.animator.BoolAnimator;
 import me.vkryl.android.animator.FactorAnimator;
-import tw.nekomimi.nekogram.accessibility.AccessibilitySettingsActivity;
-import tw.nekomimi.nekogram.helpers.CloudSettingsHelper;
-import tw.nekomimi.nekogram.helpers.PasscodeHelper;
-import tw.nekomimi.nekogram.helpers.remote.ConfigHelper;
+import tw.fdw.makrotagram.accessibility.AccessibilitySettingsActivity;
+import tw.fdw.makrotagram.helpers.CloudSettingsHelper;
+import tw.fdw.makrotagram.helpers.PasscodeHelper;
+import tw.fdw.makrotagram.helpers.remote.ConfigHelper;
 
 public class NekoSettingsActivity extends BaseNekoSettingsActivity implements FactorAnimator.Target {
 

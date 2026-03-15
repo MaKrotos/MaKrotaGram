@@ -1,4 +1,4 @@
-package tw.nekomimi.nekogram.accessibility;
+package tw.fdw.makrotagram.accessibility;
 
 import android.app.Activity;
 import android.content.SharedPreferences;

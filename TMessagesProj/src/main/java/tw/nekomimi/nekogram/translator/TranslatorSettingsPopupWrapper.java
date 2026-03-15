@@ -1,4 +1,4 @@
-package tw.nekomimi.nekogram.translator;
+package tw.fdw.makrotagram.translator;
 
 import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.R;

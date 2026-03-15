@@ -1,4 +1,4 @@
-package tw.nekomimi.nekogram.helpers;
+package tw.fdw.makrotagram.helpers;
 
 import android.app.Activity;
 import android.os.Bundle;
@@ -19,7 +19,7 @@ import org.telegram.ui.TopicsFragment;
 import java.util.Locale;
 import java.util.function.Consumer;
 
-import tw.nekomimi.nekogram.Extra;
+import tw.fdw.makrotagram.Extra;
 
 public class UserHelper extends BaseController {
 

@@ -1,4 +1,4 @@
-package tw.nekomimi.nekogram;
+package tw.fdw.makrotagram;
 
 import android.os.SystemClock;
 import android.util.TypedValue;
@@ -19,8 +19,8 @@ import org.telegram.ui.Components.PopupSwipeBackLayout;
 
 import java.util.ArrayList;
 
-import tw.nekomimi.nekogram.helpers.UserHelper;
-import tw.nekomimi.nekogram.settings.BaseNekoSettingsActivity;
+import tw.fdw.makrotagram.helpers.UserHelper;
+import tw.fdw.makrotagram.settings.BaseNekoSettingsActivity;
 
 public class DatacenterPopupWrapper {
 

@@ -1,4 +1,4 @@
-package tw.nekomimi.nekogram.settings;
+package tw.fdw.makrotagram.settings;
 
 import android.text.TextUtils;
 import android.view.View;
@@ -17,10 +17,10 @@ import org.telegram.ui.Components.UniversalAdapter;
 import java.util.ArrayList;
 import java.util.Locale;
 
-import tw.nekomimi.nekogram.NekoConfig;
-import tw.nekomimi.nekogram.helpers.PopupHelper;
-import tw.nekomimi.nekogram.translator.Translator;
-import tw.nekomimi.nekogram.translator.TranslatorApps;
+import tw.fdw.makrotagram.NekoConfig;
+import tw.fdw.makrotagram.helpers.PopupHelper;
+import tw.fdw.makrotagram.translator.Translator;
+import tw.fdw.makrotagram.translator.TranslatorApps;
 
 public class NekoGeneralSettingsActivity extends BaseNekoSettingsActivity {
 

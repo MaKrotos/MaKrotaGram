@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package tw.nekomimi.nekogram.appcompat;
+package tw.fdw.makrotagram.appcompat;
 
 import static androidx.core.view.ContentInfoCompat.FLAG_CONVERT_TO_PLAIN_TEXT;
 import static androidx.core.view.ContentInfoCompat.SOURCE_CLIPBOARD;

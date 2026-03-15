@@ -1,4 +1,4 @@
-package tw.nekomimi.nekogram.helpers;
+package tw.fdw.makrotagram.helpers;
 
 import android.app.Application;
 import android.content.SharedPreferences;
@@ -20,7 +20,7 @@ import io.sentry.Sentry;
 import io.sentry.SentryLevel;
 import io.sentry.android.core.SentryAndroid;
 import io.sentry.protocol.User;
-import tw.nekomimi.nekogram.Extra;
+import tw.fdw.makrotagram.Extra;
 
 public class AnalyticsHelper {
     private static SharedPreferences preferences;

@@ -1,4 +1,4 @@
-package tw.nekomimi.nekogram.settings;
+package tw.fdw.makrotagram.settings;
 
 import android.os.CountDownTimer;
 import android.text.InputType;
@@ -30,12 +30,12 @@ import org.telegram.ui.LaunchActivity;
 import java.util.ArrayList;
 import java.util.Locale;
 
-import tw.nekomimi.nekogram.Extra;
-import tw.nekomimi.nekogram.NekoConfig;
-import tw.nekomimi.nekogram.helpers.AnalyticsHelper;
-import tw.nekomimi.nekogram.helpers.PopupHelper;
-import tw.nekomimi.nekogram.helpers.SettingsHelper;
-import tw.nekomimi.nekogram.helpers.remote.UpdateHelper;
+import tw.fdw.makrotagram.Extra;
+import tw.fdw.makrotagram.NekoConfig;
+import tw.fdw.makrotagram.helpers.AnalyticsHelper;
+import tw.fdw.makrotagram.helpers.PopupHelper;
+import tw.fdw.makrotagram.helpers.SettingsHelper;
+import tw.fdw.makrotagram.helpers.remote.UpdateHelper;
 
 public class NekoExperimentalSettingsActivity extends BaseNekoSettingsActivity {
 

@@ -226,11 +226,11 @@ import org.telegram.ui.Stories.StoryViewer;
 import org.telegram.ui.Stories.recorder.CaptionContainerView;
 import org.telegram.ui.Stories.recorder.DominantColors;
 
-import tw.nekomimi.nekogram.NekoConfig;
-import tw.nekomimi.nekogram.accessibility.AccConfig;
-import tw.nekomimi.nekogram.helpers.MessageFilterHelper;
-import tw.nekomimi.nekogram.helpers.MessageHelper;
-import tw.nekomimi.nekogram.helpers.WhisperHelper;
+import tw.fdw.makrotagram.NekoConfig;
+import tw.fdw.makrotagram.accessibility.AccConfig;
+import tw.fdw.makrotagram.helpers.MessageFilterHelper;
+import tw.fdw.makrotagram.helpers.MessageHelper;
+import tw.fdw.makrotagram.helpers.WhisperHelper;
 
 import java.io.File;
 import java.util.ArrayList;

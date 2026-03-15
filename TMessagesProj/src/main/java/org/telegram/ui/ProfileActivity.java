@@ -337,13 +337,13 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 import me.vkryl.android.animator.BoolAnimator;
-import tw.nekomimi.nekogram.BackButtonMenuRecent;
-import tw.nekomimi.nekogram.NekoConfig;
-import tw.nekomimi.nekogram.SimpleTextViewSwitcher;
-import tw.nekomimi.nekogram.helpers.PopupHelper;
-import tw.nekomimi.nekogram.helpers.remote.ConfigHelper;
-import tw.nekomimi.nekogram.settings.NekoSettingsActivity;
-import tw.nekomimi.nekogram.translator.Translator;
+import tw.fdw.makrotagram.BackButtonMenuRecent;
+import tw.fdw.makrotagram.NekoConfig;
+import tw.fdw.makrotagram.SimpleTextViewSwitcher;
+import tw.fdw.makrotagram.helpers.PopupHelper;
+import tw.fdw.makrotagram.helpers.remote.ConfigHelper;
+import tw.fdw.makrotagram.settings.NekoSettingsActivity;
+import tw.fdw.makrotagram.translator.Translator;
 
 public class ProfileActivity extends BaseFragment implements NotificationCenter.NotificationCenterDelegate, DialogsActivity.DialogsActivityDelegate, SharedMediaLayout.SharedMediaPreloaderDelegate, ImageUpdater.ImageUpdaterDelegate, SharedMediaLayout.Delegate, MainTabsActivity.TabFragmentDelegate {
     private final static int PHONE_OPTION_CALL = 0,

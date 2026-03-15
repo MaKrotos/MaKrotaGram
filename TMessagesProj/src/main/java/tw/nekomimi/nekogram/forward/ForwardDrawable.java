@@ -1,4 +1,4 @@
-package tw.nekomimi.nekogram.forward;
+package tw.fdw.makrotagram.forward;
 
 import static org.telegram.messenger.AndroidUtilities.dp;
 

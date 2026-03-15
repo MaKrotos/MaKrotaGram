@@ -6,7 +6,7 @@
  * Copyright OctoGram, 2023-2025.
  */
 
-package tw.nekomimi.nekogram.translator.html;
+package tw.fdw.makrotagram.translator.html;
 
 import android.graphics.Typeface;
 import android.text.Html;
@@ -38,7 +38,7 @@ import java.util.Arrays;
 import java.util.Locale;
 import java.util.regex.Pattern;
 
-import tw.nekomimi.nekogram.translator.Translator;
+import tw.fdw.makrotagram.translator.Translator;
 
 public class HTMLKeeper {
     final private static String[] list_html_params = new String[]{"b", "i", "u", "s", "tt", "a", "q", "tg-emoji", "blockquote", "tg-pre"};

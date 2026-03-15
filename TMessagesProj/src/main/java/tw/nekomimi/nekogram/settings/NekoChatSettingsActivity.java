@@ -1,4 +1,4 @@
-package tw.nekomimi.nekogram.settings;
+package tw.fdw.makrotagram.settings;
 
 import android.animation.ValueAnimator;
 import android.annotation.SuppressLint;
@@ -37,11 +37,11 @@ import org.telegram.ui.Components.UniversalRecyclerView;
 
 import java.util.ArrayList;
 
-import tw.nekomimi.nekogram.NekoConfig;
-import tw.nekomimi.nekogram.helpers.EntitiesHelper;
-import tw.nekomimi.nekogram.helpers.PopupHelper;
-import tw.nekomimi.nekogram.helpers.VoiceEnhancementsHelper;
-import tw.nekomimi.nekogram.helpers.WhisperHelper;
+import tw.fdw.makrotagram.NekoConfig;
+import tw.fdw.makrotagram.helpers.EntitiesHelper;
+import tw.fdw.makrotagram.helpers.PopupHelper;
+import tw.fdw.makrotagram.helpers.VoiceEnhancementsHelper;
+import tw.fdw.makrotagram.helpers.WhisperHelper;
 
 public class NekoChatSettingsActivity extends BaseNekoSettingsActivity implements NotificationCenter.NotificationCenterDelegate {
 

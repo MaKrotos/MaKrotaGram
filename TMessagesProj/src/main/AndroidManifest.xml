@@ -110,7 +110,7 @@
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher"
         android:largeHeap="true"
-        android:label="@string/AppNameNeko"
+        android:label="@string/AppNameMaKrota"
         android:theme="@style/Theme.TMessages.Start"
         android:manageSpaceActivity="org.telegram.ui.ExternalActionActivity"
         android:supportsRtl="false"
@@ -375,7 +375,7 @@
             <intent-filter>
                 <action android:name="android.intent.action.VIEW"/>
                 <category android:name="android.intent.category.DEFAULT"/>
-                <data android:mimeType="vnd.android.cursor.item/vnd.tw.nekomimi.nekogram.android.profile"/>
+                <data android:mimeType="vnd.android.cursor.item/vnd.tw.fdw.makrotagram.android.profile"/>
             </intent-filter>
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW"/>
@@ -419,8 +419,8 @@
             <intent-filter>
                 <action android:name="android.intent.action.VIEW"/>
                 <category android:name="android.intent.category.DEFAULT"/>
-                <data android:mimeType="vnd.android.cursor.item/vnd.tw.nekomimi.nekogram.android.call"/>
-                <data android:mimeType="vnd.android.cursor.item/vnd.tw.nekomimi.nekogram.android.call.video"/>
+                <data android:mimeType="vnd.android.cursor.item/vnd.tw.fdw.makrotagram.android.call"/>
+                <data android:mimeType="vnd.android.cursor.item/vnd.tw.fdw.makrotagram.android.call.video"/>
             </intent-filter>
         </activity-alias>
         <activity
@@ -796,13 +796,13 @@
             </intent-filter>
         </service>
 
-        <receiver android:name="tw.nekomimi.nekogram.helpers.ApkInstaller$UpdateReceiver" android:exported="true">
+        <receiver android:name="tw.fdw.makrotagram.helpers.ApkInstaller$UpdateReceiver" android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
             </intent-filter>
         </receiver>
 
-        <receiver android:name="tw.nekomimi.nekogram.SaveToDownloadReceiver" android:exported="false">
+        <receiver android:name="tw.fdw.makrotagram.SaveToDownloadReceiver" android:exported="false">
             <intent-filter>
                 <action android:name="${applicationId}.CANCEL_SAVE_TO_DOWNLOAD" />
             </intent-filter>
@@ -810,7 +810,7 @@
 
         <provider
             android:authorities="${applicationId}.streaming"
-            android:name="tw.nekomimi.nekogram.streaming.MediaStreamingProvider"
+            android:name="tw.fdw.makrotagram.streaming.MediaStreamingProvider"
             android:exported="false"
             android:grantUriPermissions="true"/>
 

@@ -1,4 +1,4 @@
-package tw.nekomimi.nekogram.settings;
+package tw.fdw.makrotagram.settings;
 
 import android.app.Dialog;
 import android.content.ClipData;
@@ -36,7 +36,7 @@ import org.telegram.ui.PasscodeActivity;
 import java.util.ArrayList;
 import java.util.Locale;
 
-import tw.nekomimi.nekogram.helpers.PasscodeHelper;
+import tw.fdw.makrotagram.helpers.PasscodeHelper;
 
 public class NekoPasscodeSettingsActivity extends BaseNekoSettingsActivity {
     private boolean passcodeSet;

@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-package tw.nekomimi.nekogram.appcompat;
+package tw.fdw.makrotagram.appcompat;
 
-import static tw.nekomimi.nekogram.appcompat.AppCompatReceiveContentHelper.maybeHandleDragEventViaPerformReceiveContent;
-import static tw.nekomimi.nekogram.appcompat.AppCompatReceiveContentHelper.maybeHandleMenuActionViaPerformReceiveContent;
+import static tw.fdw.makrotagram.appcompat.AppCompatReceiveContentHelper.maybeHandleDragEventViaPerformReceiveContent;
+import static tw.fdw.makrotagram.appcompat.AppCompatReceiveContentHelper.maybeHandleMenuActionViaPerformReceiveContent;
 
 import android.annotation.SuppressLint;
 import android.content.Context;

@@ -1,4 +1,4 @@
-package tw.nekomimi.nekogram.helpers;
+package tw.fdw.makrotagram.helpers;
 
 import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.R;
@@ -7,8 +7,8 @@ import org.telegram.messenger.UserConfig;
 import java.util.HashMap;
 import java.util.function.BiConsumer;
 
-import tw.nekomimi.nekogram.Extra;
-import tw.nekomimi.nekogram.helpers.remote.BaseRemoteHelper;
+import tw.fdw.makrotagram.Extra;
+import tw.fdw.makrotagram.helpers.remote.BaseRemoteHelper;
 
 public class RegDateHelper {
     private static final HashMap<Long, Integer> regDates = new HashMap<>();

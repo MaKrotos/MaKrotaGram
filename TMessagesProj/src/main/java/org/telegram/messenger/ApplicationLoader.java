@@ -49,10 +49,10 @@ import java.io.File;
 import java.util.Locale;
 import java.util.concurrent.CountDownLatch;
 
-import tw.nekomimi.nekogram.FirebaseFix;
-import tw.nekomimi.nekogram.NekoConfig;
-import tw.nekomimi.nekogram.helpers.AnalyticsHelper;
-import tw.nekomimi.nekogram.helpers.ComponentsHelper;
+import tw.fdw.makrotagram.FirebaseFix;
+import tw.fdw.makrotagram.NekoConfig;
+import tw.fdw.makrotagram.helpers.AnalyticsHelper;
+import tw.fdw.makrotagram.helpers.ComponentsHelper;
 
 public class ApplicationLoader extends Application {
 

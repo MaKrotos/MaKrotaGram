@@ -1,4 +1,4 @@
-package tw.nekomimi.nekogram;
+package tw.fdw.makrotagram;
 
 import android.app.Activity;
 import android.content.SharedPreferences;
@@ -21,11 +21,11 @@ import java.util.Set;
 import java.util.function.BiConsumer;
 
 import app.nekogram.translator.DeepLTranslator;
-import tw.nekomimi.nekogram.helpers.AnalyticsHelper;
-import tw.nekomimi.nekogram.helpers.CloudSettingsHelper;
-import tw.nekomimi.nekogram.helpers.LensHelper;
-import tw.nekomimi.nekogram.translator.Translator;
-import tw.nekomimi.nekogram.translator.TranslatorApps;
+import tw.fdw.makrotagram.helpers.AnalyticsHelper;
+import tw.fdw.makrotagram.helpers.CloudSettingsHelper;
+import tw.fdw.makrotagram.helpers.LensHelper;
+import tw.fdw.makrotagram.translator.Translator;
+import tw.fdw.makrotagram.translator.TranslatorApps;
 
 public class NekoConfig {
     //TODO: refactor
