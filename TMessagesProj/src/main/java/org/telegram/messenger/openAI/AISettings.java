@@ -15,15 +15,7 @@ public class AISettings {
     private static final String KEY_SELECTED_SERVICE = "selected_service";
     private static final String KEY_SYSTEM_PROMPT = "system_prompt";
     
-    // Old keys for migration (keep for backward compatibility)
-    private static final String KEY_OPENAI_API_KEY = "openai_api_key";
-    private static final String KEY_OPENAI_MODEL = "openai_model";
-    private static final String KEY_GEMINI_API_KEY = "gemini_api_key";
-    private static final String KEY_GEMINI_MODEL = "gemini_model";
-    private static final String KEY_CUSTOM_API_URL = "custom_api_url";
-    private static final String KEY_CUSTOM_MODEL = "custom_model";
-    private static final String KEY_CUSTOM_API_KEY = "custom_api_key";
-    private static final String KEY_MIGRATION_DONE = "migration_done";
+    // Old keys removed (migration disabled)
 
     // Default models
     public static final String DEFAULT_OPENAI_MODEL = "gpt-3.5-turbo";
@@ -67,13 +59,13 @@ public class AISettings {
     public AISettings(int account) {
         this.currentAccount = account;
         this.preferences = ApplicationLoader.applicationContext.getSharedPreferences(
-            PREFS_NAME + "_" + account, Context.MODE_PRIVATE);
+            PREFS_NAME + "_" + account, Context.MODE_PRIVATE); // настройки промпта и выбранного сервиса зависят от аккаунта
         this.serviceSettingsMap = new HashMap<>();
         loadAll();
     }
     
     /**
-     * Load all settings from SharedPreferences, including migration from old format.
+     * Load all settings from SharedPreferences.
      */
     private void loadAll() {
         // Load selected service
@@ -87,69 +79,8 @@ public class AISettings {
         serviceSettingsMap.put(AIServiceType.OPENAI, new OpenAISettings(currentAccount));
         serviceSettingsMap.put(AIServiceType.GEMINI, new GeminiSettings(currentAccount));
         // TODO: Custom service settings
-        
-        // Check if migration is needed (old keys exist)
-        if (needsMigration()) {
-            migrateFromOld();
-        }
     }
     
-    /**
-     * Check if any old-style keys exist and migration hasn't been performed yet.
-     */
-    private boolean needsMigration() {
-        // If migration already done, skip
-        if (preferences.getBoolean(KEY_MIGRATION_DONE, false)) {
-            return false;
-        }
-        return preferences.contains(KEY_OPENAI_API_KEY) ||
-               preferences.contains(KEY_GEMINI_API_KEY) ||
-               preferences.contains(KEY_CUSTOM_API_KEY);
-    }
-    
-    /**
-     * Migrate old flat settings to new per-service settings.
-     */
-    private void migrateFromOld() {
-        // OpenAI
-        String openaiApiKey = preferences.getString(KEY_OPENAI_API_KEY, "");
-        String openaiModel = preferences.getString(KEY_OPENAI_MODEL, DEFAULT_OPENAI_MODEL);
-        OpenAISettings openai = (OpenAISettings) serviceSettingsMap.get(AIServiceType.OPENAI);
-        openai.setApiKey(openaiApiKey);
-        openai.setModel(openaiModel);
-        openai.save();
-        
-        // Gemini
-        String geminiApiKey = preferences.getString(KEY_GEMINI_API_KEY, "");
-        String geminiModel = preferences.getString(KEY_GEMINI_MODEL, DEFAULT_GEMINI_MODEL);
-        GeminiSettings gemini = (GeminiSettings) serviceSettingsMap.get(AIServiceType.GEMINI);
-        gemini.setApiKey(geminiApiKey);
-        gemini.setModel(geminiModel);
-        gemini.save();
-        
-        
-        // Custom (not implemented yet)
-        
-        // Optionally clear old keys (we can keep them for downgrade)
-        clearOldKeys();
-        // Mark migration as completed
-        preferences.edit().putBoolean(KEY_MIGRATION_DONE, true).apply();
-    }
-    
-    /**
-     * Clear old preference keys (optional).
-     */
-    private void clearOldKeys() {
-        SharedPreferences.Editor editor = preferences.edit();
-        editor.remove(KEY_OPENAI_API_KEY);
-        editor.remove(KEY_OPENAI_MODEL);
-        editor.remove(KEY_GEMINI_API_KEY);
-        editor.remove(KEY_GEMINI_MODEL);
-        editor.remove(KEY_CUSTOM_API_URL);
-        editor.remove(KEY_CUSTOM_MODEL);
-        editor.remove(KEY_CUSTOM_API_KEY);
-        editor.apply();
-    }
     
     /**
      * Save all settings (selected service, system prompt, and each service's settings).
@@ -336,59 +267,4 @@ public class AISettings {
         // TODO: implement custom service settings
     }
     
-    /**
-     * Legacy inner class AISettingsData (kept for compatibility but deprecated).
-     */
-    public static class AISettingsData {
-        public AIServiceType selectedService = AIServiceType.OPENAI;
-        public String openaiApiKey = "";
-        public String openaiModel = DEFAULT_OPENAI_MODEL;
-        public String geminiApiKey = "";
-        public String geminiModel = DEFAULT_GEMINI_MODEL;
-        public String customApiUrl = "";
-        public String customModel = "";
-        public String customApiKey = "";
-        public String systemPrompt = "";
-        
-        public AISettingsData copy() {
-            AISettingsData copy = new AISettingsData();
-            copy.selectedService = this.selectedService;
-            copy.openaiApiKey = this.openaiApiKey;
-            copy.openaiModel = this.openaiModel;
-            copy.geminiApiKey = this.geminiApiKey;
-            copy.geminiModel = this.geminiModel;
-            copy.customApiUrl = this.customApiUrl;
-            copy.customModel = this.customModel;
-            copy.customApiKey = this.customApiKey;
-            copy.systemPrompt = this.systemPrompt;
-            return copy;
-        }
-        
-        public boolean equals(AISettingsData other) {
-            if (other == null) return false;
-            return selectedService == other.selectedService &&
-                   openaiApiKey.equals(other.openaiApiKey) &&
-                   openaiModel.equals(other.openaiModel) &&
-                   geminiApiKey.equals(other.geminiApiKey) &&
-                   geminiModel.equals(other.geminiModel) &&
-                   customApiUrl.equals(other.customApiUrl) &&
-                   customModel.equals(other.customModel) &&
-                   customApiKey.equals(other.customApiKey) &&
-                   systemPrompt.equals(other.systemPrompt);
-        }
-        
-        public boolean isValid() {
-            switch (selectedService) {
-                case OPENAI:
-                    return !TextUtils.isEmpty(openaiApiKey);
-                case GEMINI:
-                    return !TextUtils.isEmpty(geminiApiKey);
-                case CUSTOM:
-                    return !TextUtils.isEmpty(customApiUrl) && 
-                           !TextUtils.isEmpty(customApiKey);
-                default:
-                    return false;
-            }
-        }
-    }
 }

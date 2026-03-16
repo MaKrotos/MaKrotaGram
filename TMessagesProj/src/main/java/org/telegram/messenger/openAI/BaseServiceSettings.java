@@ -147,7 +147,7 @@ public abstract class BaseServiceSettings {
         saveValue(def, value, editor);
         try {
             editor.apply();
-            FileLog.d("BaseServiceSettings: Saved value for key " + key + " (account " + account + ")");
+            FileLog.d("BaseServiceSettings: Saved value for key " + key);
         } catch (Exception e) {
             FileLog.e("BaseServiceSettings: Failed to apply preference change for key " + key, e);
         }
@@ -184,7 +184,7 @@ public abstract class BaseServiceSettings {
     // Helper methods
 
     protected String getSharedPreferencesName() {
-        return "ai_service_settings_" + account;
+        return "ai_service_settings";
     }
 
     protected String getPreferencePrefix() {
