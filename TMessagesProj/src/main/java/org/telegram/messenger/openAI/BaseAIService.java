@@ -66,6 +66,34 @@ public abstract class BaseAIService {
         return SYSTEM_PROMPT;
     }
 
+    protected String getEnhancedSystemPrompt(long interlocutorId) {
+        StringBuilder enhanced = new StringBuilder();
+        enhanced.append(SYSTEM_PROMPT);
+        
+        String custom = aiSettings.getSystemPrompt();
+        if (custom != null && !custom.isEmpty()) {
+            enhanced.append("\n\n").append("=== БАЗОВЫЙ ПОЛЬЗОВАТЕЛЬСКИЙ ПРОМПТ ===\n").append(custom);
+        }
+        
+        UserPromptService promptService = UserPromptService.getInstance(currentAccount);
+        
+        // Промпт для себя
+        String myPrompt = promptService.getCurrentUserPrompt();
+        if (!TextUtils.isEmpty(myPrompt)) {
+            enhanced.append("\n\n").append("=== МОЙ ПРОМПТ ===\n").append(myPrompt);
+        }
+        
+        // Промпт для собеседника (если есть)
+        if (interlocutorId > 0) {
+            String interlocutorPrompt = promptService.getPrompt(interlocutorId);
+            if (!TextUtils.isEmpty(interlocutorPrompt)) {
+                enhanced.append("\n\n").append("=== ПРОМПТ ДЛЯ СОБЕСЕДНИКА ===\n").append(interlocutorPrompt);
+            }
+        }
+        
+        return enhanced.toString();
+    }
+
     public interface Callback {
         void onSuccess(JSONObject response);
 
@@ -158,11 +186,15 @@ public abstract class BaseAIService {
                 model = getModelById(getDefaultModelId());
             }
 
-            // Формируем историю переписки
-            String conversationHistory = buildConversationHistory(messages, userPrompt);
+            // Вычисляем ID собеседника для enhanced системного промпта
+            long interlocutorId = getInterlocutorId(messages);
+            String systemPrompt = getEnhancedSystemPrompt(interlocutorId);
+
+            // Формируем историю переписки (без дублирования промптов)
+            String conversationHistory = buildConversationHistory(messages, userPrompt, interlocutorId);
 
             // Отправляем запрос в конкретный сервис с указанием модели
-            makeRequest(getSystemPrompt(), conversationHistory, model.id, callback);
+            makeRequest(systemPrompt, conversationHistory, model.id, callback);
 
         } catch (Exception e) {
             FileLog.e("Error creating request: " + e.getMessage());
@@ -174,12 +206,11 @@ public abstract class BaseAIService {
         generateSuggestions(messages, null, callback);
     }
 
-    // Формирование истории переписки (без изменений)
-    protected String buildConversationHistory(ArrayList<MessageObject> messages, String userPrompt) {
+    // Формирование истории переписки (без дублирования промптов)
+    protected String buildConversationHistory(ArrayList<MessageObject> messages, String userPrompt, long interlocutorId) {
         StringBuilder history = new StringBuilder();
 
         long currentUserId = UserConfig.getInstance(currentAccount).getClientUserId();
-        long interlocutorId = getInterlocutorId(messages);
 
         TLRPC.User currentUser = UserConfig.getInstance(currentAccount).getCurrentUser();
         String myName = currentUser != null ? getDisplayName(currentUser) : "Я (бот)";
@@ -201,18 +232,7 @@ public abstract class BaseAIService {
             history.append("📝 ИНСТРУКЦИЯ ОТ ПОЛЬЗОВАТЕЛЯ: ").append(userPrompt).append("\n\n");
         }
 
-        // Добавляем промпты из UserPromptService
-        UserPromptService promptService = UserPromptService.getInstance(currentAccount);
-        if (interlocutorId > 0) {
-            String interlocutorPrompt = promptService.getPrompt(interlocutorId);
-            if (!TextUtils.isEmpty(interlocutorPrompt)) {
-                history.append("🎯 ПРОМПТ ДЛЯ СОБЕСЕДНИКА: ").append(interlocutorPrompt).append("\n\n");
-            }
-        }
-        String myPrompt = promptService.getCurrentUserPrompt();
-        if (!TextUtils.isEmpty(myPrompt)) {
-            history.append("👤 МОЙ ПРОМПТ: ").append(myPrompt).append("\n\n");
-        }
+        // Промпты из UserPromptService больше не добавляются здесь, они включены в системный промпт
 
         // Добавляем информацию о чате
         history.append("========== ИНФОРМАЦИЯ О ЧАТЕ ==========\n");

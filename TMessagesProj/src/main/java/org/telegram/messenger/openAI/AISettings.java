@@ -59,7 +59,7 @@ public class AISettings {
     public AISettings(int account) {
         this.currentAccount = account;
         this.preferences = ApplicationLoader.applicationContext.getSharedPreferences(
-            PREFS_NAME + "_" + account, Context.MODE_PRIVATE); /
+            PREFS_NAME + "_" + account, Context.MODE_PRIVATE);
         this.serviceSettingsMap = new HashMap<>();
         loadAll();
     }
@@ -78,7 +78,6 @@ public class AISettings {
         // Initialize service settings objects
         serviceSettingsMap.put(AIServiceType.OPENAI, new OpenAISettings(currentAccount));
         serviceSettingsMap.put(AIServiceType.GEMINI, new GeminiSettings(currentAccount));
-        // TODO: Custom service settings
     }
     
     
