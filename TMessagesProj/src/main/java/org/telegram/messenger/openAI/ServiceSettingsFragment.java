@@ -17,6 +17,7 @@ import android.content.res.ColorStateList;
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.R;
+import org.telegram.messenger.UserConfig;
 import org.telegram.ui.ActionBar.ActionBar;
 import org.telegram.ui.ActionBar.AlertDialog;
 import org.telegram.ui.ActionBar.BaseFragment;
@@ -49,6 +50,7 @@ public class ServiceSettingsFragment extends BaseFragment {
     private int rowCount = 0;
     private List<SettingDefinition> definitions;
     private int[] definitionRows; // mapping from definition index to row number
+    private int currentAccount = -1;
 
     private static float parseFloatWithComma(String str) throws NumberFormatException {
         return Float.parseFloat(str.replace(',', '.'));
@@ -91,11 +93,32 @@ public class ServiceSettingsFragment extends BaseFragment {
         if (serviceType == null) {
             serviceType = AISettings.AIServiceType.OPENAI; // fallback
         }
-        aiSettings = new AISettings();
+        currentAccount = UserConfig.selectedAccount;
+        aiSettings = new AISettings(currentAccount);
         serviceSettings = aiSettings.getServiceSettings(serviceType);
         definitions = serviceSettings.getSettingDefinitions();
         updateRows();
         return true;
+    }
+
+    private void reloadSettings() {
+        int newAccount = UserConfig.selectedAccount;
+        if (newAccount != currentAccount) {
+            currentAccount = newAccount;
+            aiSettings = new AISettings(currentAccount);
+            serviceSettings = aiSettings.getServiceSettings(serviceType);
+            definitions = serviceSettings.getSettingDefinitions();
+            updateRows();
+            if (listAdapter != null) {
+                listAdapter.notifyDataSetChanged();
+            }
+        }
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        reloadSettings();
     }
 
     private void updateRows() {

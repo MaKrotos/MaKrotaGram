@@ -143,7 +143,14 @@ public abstract class BaseServiceSettings {
         }
         currentValues.put(key, value);
         // Immediately persist
-        saveValue(def, value, preferences.edit());
+        SharedPreferences.Editor editor = preferences.edit();
+        saveValue(def, value, editor);
+        try {
+            editor.apply();
+            FileLog.d("BaseServiceSettings: Saved value for key " + key + " (account " + account + ")");
+        } catch (Exception e) {
+            FileLog.e("BaseServiceSettings: Failed to apply preference change for key " + key, e);
+        }
     }
 
     /**

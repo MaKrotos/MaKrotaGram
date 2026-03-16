@@ -8,6 +8,7 @@ import org.telegram.messenger.FileLog;
 import org.telegram.messenger.MessageObject;
 import org.telegram.messenger.MessagesController;
 import org.telegram.messenger.UserConfig;
+import org.telegram.messenger.openAI.UserPromptService;
 import org.telegram.tgnet.TLRPC;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -56,6 +57,14 @@ public abstract class BaseAIService {
 
     protected int currentAccount;
     protected AISettings aiSettings;
+
+    protected String getSystemPrompt() {
+        String custom = aiSettings.getSystemPrompt();
+        if (custom != null && !custom.isEmpty()) {
+            return SYSTEM_PROMPT + "\n\n" + custom;
+        }
+        return SYSTEM_PROMPT;
+    }
 
     public interface Callback {
         void onSuccess(JSONObject response);
@@ -153,7 +162,7 @@ public abstract class BaseAIService {
             String conversationHistory = buildConversationHistory(messages, userPrompt);
 
             // Отправляем запрос в конкретный сервис с указанием модели
-            makeRequest(SYSTEM_PROMPT, conversationHistory, model.id, callback);
+            makeRequest(getSystemPrompt(), conversationHistory, model.id, callback);
 
         } catch (Exception e) {
             FileLog.e("Error creating request: " + e.getMessage());
@@ -190,6 +199,19 @@ public abstract class BaseAIService {
         // Добавляем пользовательский промпт если есть
         if (!TextUtils.isEmpty(userPrompt)) {
             history.append("📝 ИНСТРУКЦИЯ ОТ ПОЛЬЗОВАТЕЛЯ: ").append(userPrompt).append("\n\n");
+        }
+
+        // Добавляем промпты из UserPromptService
+        UserPromptService promptService = UserPromptService.getInstance(currentAccount);
+        if (interlocutorId > 0) {
+            String interlocutorPrompt = promptService.getPrompt(interlocutorId);
+            if (!TextUtils.isEmpty(interlocutorPrompt)) {
+                history.append("🎯 ПРОМПТ ДЛЯ СОБЕСЕДНИКА: ").append(interlocutorPrompt).append("\n\n");
+            }
+        }
+        String myPrompt = promptService.getCurrentUserPrompt();
+        if (!TextUtils.isEmpty(myPrompt)) {
+            history.append("👤 МОЙ ПРОМПТ: ").append(myPrompt).append("\n\n");
         }
 
         // Добавляем информацию о чате
