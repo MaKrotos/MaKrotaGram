@@ -25,6 +25,7 @@ public class AISettings {
     public enum AIServiceType {
         OPENAI("OpenAI"),
         GEMINI("Google Gemini"),
+        LOCAL_AI("Local AI"),
         CUSTOM("Custom API");
         
         private final String displayName;
@@ -78,6 +79,7 @@ public class AISettings {
         // Initialize service settings objects
         serviceSettingsMap.put(AIServiceType.OPENAI, new OpenAISettings(currentAccount));
         serviceSettingsMap.put(AIServiceType.GEMINI, new GeminiSettings(currentAccount));
+        serviceSettingsMap.put(AIServiceType.LOCAL_AI, new LocalAISettings(currentAccount));
     }
     
     
@@ -108,6 +110,9 @@ public class AISettings {
                     break;
                 case GEMINI:
                     settings = new GeminiSettings(currentAccount);
+                    break;
+                case LOCAL_AI:
+                    settings = new LocalAISettings(currentAccount);
                     break;
                 default:
                     settings = new OpenAISettings(currentAccount);

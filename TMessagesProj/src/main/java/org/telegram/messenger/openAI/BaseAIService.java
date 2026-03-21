@@ -19,43 +19,24 @@ import java.util.Set;
 public abstract class BaseAIService {
 
     protected static final String SYSTEM_PROMPT =
-            "You are a creative assistant that helps a messenger user come up with WHAT TO REPLY in a chat. Your main task is to formulate response options that the user can send in the chat. All suggestions must be in first person (I, me, my). " +
-                    "Your task is to analyze the conversation history and suggest to the user SEVERAL DIFFERENT options of what they CAN WRITE NEXT.\n\n" +
-                    "❗️❗️❗️ CRITICALLY IMPORTANT ❗️❗️❗️\n" +
-                    "1. You DO NOT respond on your own behalf. You suggest options that the user (I) can send to the interlocutor.\n" +
-                    "2. CAREFULLY LOOK AT WHO WROTE THE LAST MESSAGE:\n" +
-                    "   - If the last message is from the INTERLOCUTOR → I need to REPLY to them\n" +
-                    "   - If the last message is from ME → that means I already wrote something, and now I need to CONTINUE the conversation (add another message)\n\n" +
-                    "IMPORTANT REQUIREMENTS:\n" +
-                    "1. Always suggest AT LEAST 3-5 different response options\n" +
-                    "2. Options must be DIFFERENT in style and content\n" +
-                    "3. Consider the conversation context and relationship between interlocutors\n" +
-                    "4. If there are images, simply consider their presence in the context\n" +
-                    "5. Options should sound natural, as if written by a real person\n" +
-                    "6. Options should be more human-like, in a normal conversational style. Do not put periods at the end of sentences unless it's a question or exclamation. Use natural language as in messengers. Use a casual, conversational style as in everyday communication. Avoid frequent use of punctuation (commas, periods) to make the text look more natural and relaxed.\n7. All options must be formulated in first person (I, me, my) and ready to be sent by the user.\n8. Communicate in the same language as the chat. If the conversation history uses multiple languages, choose the language of the last message or the language that predominates. If it's unclear which language to use, write in the language selected in the app settings (app language).\n\n" +
-                    "Respond ONLY in JSON format with the following fields:\n" +
+            "You are an AI assistant that suggests reply options in a chat. Your task is to analyze the conversation history and suggest 3-5 different response options that the user can send. All options must be in first person (I, me, my) and ready to be sent.\n\n" +
+                    "Important rules:\n" +
+                    "1. If the last message is from the interlocutor, suggest replies to them.\n" +
+                    "2. If the last message is from the user, suggest continuations.\n" +
+                    "3. Options must be diverse in style and content.\n" +
+                    "4. Consider the conversation context and relationship between interlocutors.\n" +
+                    "5. If there are images, stickers, voice messages, etc., simply consider their presence in the context.\n" +
+                    "6. Options should sound natural, as if written by a real person. Use casual, conversational style as in everyday messengers.\n" +
+                    "7. Write in the same language as the chat (or app language if unclear).\n\n" +
+                    "Respond ONLY in JSON format with the following structure:\n" +
                     "{\n" +
                     "  \"suggestions\": [\n" +
-                    "    {\n" +
-                    "      \"text\": \"text that I CAN SEND\",\n" +
-                    "      \"confidence\": 0.95 (a number from 0 to 1, how appropriate this option is),\n" +
-                    "      \"type\": \"answer\" (direct answer), \"question\" (question), \"continuation\" (topic continuation), \"humor\" (with humor), \"emoji\" (with emoji)\n" +
-                    "    },\n" +
-                    "    ... (at least 2-4 more options)\n" +
-                    "  ],\n" +
-                    "  \"explanation\": \"brief explanation of context and why these options are appropriate\"\n" +
+                    "    \"text of first suggestion\",\n" +
+                    "    \"text of second suggestion\",\n" +
+                    "    \"text of third suggestion\"\n" +
+                    "  ]\n" +
                     "}\n\n" +
-                    "EXAMPLE of a good response (note - options from the user's perspective):\n" +
-                    "{\n" +
-                    "  \"suggestions\": [\n" +
-                    "    {\"text\": \"Yes, I think so too\", \"confidence\": 0.9, \"type\": \"answer\"},\n" +
-                    "    {\"text\": \"What do you think about this?\", \"confidence\": 0.85, \"type\": \"question\"},\n" +
-                    "    {\"text\": \"By the way, this reminded me of a story...\", \"confidence\": 0.7, \"type\": \"continuation\"},\n" +
-                    "    {\"text\": \"😄 Sounds great!\", \"confidence\": 0.8, \"type\": \"emoji\"}\n" +
-                    "  ],\n" +
-                    "  \"explanation\": \"Different options: agreement, question to continue, transition to a story, and emotional reaction\"\n" +
-                    "}\n\n" +
-                    "Important: NEVER return fewer than 3 options. The response must be only in JSON format.";
+                    "Never return fewer than 3 options. The response must be only JSON.";
 
     protected int currentAccount;
     protected AISettings aiSettings;
@@ -570,12 +551,19 @@ public abstract class BaseAIService {
 
             JSONArray enhanced = new JSONArray();
             for (int i = 0; i < suggestions.length(); i++) {
-                enhanced.put(suggestions.get(i));
-            }
-
-            while (enhanced.length() < 3) {
-                JSONObject fallback = createDefaultResponse();
-                enhanced.put(fallback);
+                Object item = suggestions.get(i);
+                // Если элемент - объект, извлекаем поле "text"
+                if (item instanceof JSONObject) {
+                    JSONObject obj = (JSONObject) item;
+                    if (obj.has("text")) {
+                        enhanced.put(obj.getString("text"));
+                    } else {
+                        // fallback
+                        enhanced.put(item.toString());
+                    }
+                } else {
+                    enhanced.put(item);
+                }
             }
 
             original.put("suggestions", enhanced);
@@ -586,17 +574,6 @@ public abstract class BaseAIService {
         }
     }
 
-    public JSONObject createDefaultResponse() {
-        JSONObject suggestion = new JSONObject();
-        try {
-            suggestion.put("text", "Yes, I agree");
-            suggestion.put("confidence", 0.8);
-            suggestion.put("type", "answer");
-        } catch (Exception e) {
-            FileLog.e("Error creating default response: " + e.getMessage());
-        }
-        return suggestion;
-    }
 
     protected JSONObject cleanJsonResponse(String raw) {
         // Удаляем возможные лишние символы в начале/конце

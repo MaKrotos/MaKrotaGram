@@ -50,6 +50,7 @@ public class ServiceSettingsFragment extends BaseFragment {
     private int rowCount = 0;
     private List<SettingDefinition> definitions;
     private int[] definitionRows; // mapping from definition index to row number
+    private int manageModelsRow = -1;
     private int currentAccount = -1;
 
     private static float parseFloatWithComma(String str) throws NumberFormatException {
@@ -103,15 +104,14 @@ public class ServiceSettingsFragment extends BaseFragment {
 
     private void reloadSettings() {
         int newAccount = UserConfig.selectedAccount;
-        if (newAccount != currentAccount) {
-            currentAccount = newAccount;
-            aiSettings = new AISettings(currentAccount);
-            serviceSettings = aiSettings.getServiceSettings(serviceType);
-            definitions = serviceSettings.getSettingDefinitions();
-            updateRows();
-            if (listAdapter != null) {
-                listAdapter.notifyDataSetChanged();
-            }
+        // Always reload settings to reflect changes made elsewhere (e.g., model selection)
+        currentAccount = newAccount;
+        aiSettings = new AISettings(currentAccount);
+        serviceSettings = aiSettings.getServiceSettings(serviceType);
+        definitions = serviceSettings.getSettingDefinitions();
+        updateRows();
+        if (listAdapter != null) {
+            listAdapter.notifyDataSetChanged();
         }
     }
 
@@ -126,6 +126,11 @@ public class ServiceSettingsFragment extends BaseFragment {
         definitionRows = new int[definitions.size()];
         for (int i = 0; i < definitions.size(); i++) {
             definitionRows[i] = rowCount++;
+        }
+        // For LOCAL_AI, add a "Manage models" row
+        manageModelsRow = -1;
+        if (serviceType == AISettings.AIServiceType.LOCAL_AI) {
+            manageModelsRow = rowCount++;
         }
         // Add a divider after all settings
         rowCount++; // divider
@@ -158,6 +163,10 @@ public class ServiceSettingsFragment extends BaseFragment {
         frameLayout.addView(listView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
 
         listView.setOnItemClickListener((view, position) -> {
+            if (manageModelsRow != -1 && position == manageModelsRow) {
+                presentFragment(new ModelManagerFragment());
+                return;
+            }
             for (int i = 0; i < definitions.size(); i++) {
                 if (position == definitionRows[i]) {
                     onSettingClick(definitions.get(i));
@@ -170,6 +179,11 @@ public class ServiceSettingsFragment extends BaseFragment {
     }
 
     private void onSettingClick(SettingDefinition definition) {
+        // Special handling for Local AI model path
+        if (serviceType == AISettings.AIServiceType.LOCAL_AI && "model_path".equals(definition.getKey())) {
+            showModelPathDialog(definition);
+            return;
+        }
         switch (definition.getType()) {
             case STRING:
                 showStringDialog(definition);
@@ -502,6 +516,11 @@ public class ServiceSettingsFragment extends BaseFragment {
         builder.show();
     }
 
+    private void showModelPathDialog(SettingDefinition definition) {
+        // Immediately open ModelManagerFragment in selection mode
+        presentFragment(ModelManagerFragment.newInstanceForSelection());
+    }
+
     private class ChoiceAdapter extends RecyclerListView.SelectionAdapter {
         private List<String> choices;
         private int selectedIndex;
@@ -561,6 +580,9 @@ public class ServiceSettingsFragment extends BaseFragment {
                 Object value = serviceSettings.getValue(def.getKey());
                 String displayValue = formatValue(def, value);
                 textCell.setTextAndValue(def.getTitle(), displayValue, true);
+            } else if (manageModelsRow != -1 && position == manageModelsRow) {
+                TextSettingsCell textCell = (TextSettingsCell) holder.itemView;
+                textCell.setText("Управление моделями", true);
             } else {
                 // Divider row, nothing to bind
             }
@@ -593,6 +615,9 @@ public class ServiceSettingsFragment extends BaseFragment {
         @Override
         public boolean isEnabled(RecyclerView.ViewHolder holder) {
             int position = holder.getAdapterPosition();
+            if (manageModelsRow != -1 && position == manageModelsRow) {
+                return true;
+            }
             return position < definitions.size();
         }
 
@@ -613,7 +638,13 @@ public class ServiceSettingsFragment extends BaseFragment {
 
         @Override
         public int getItemViewType(int position) {
-            return position < definitions.size() ? 0 : 1;
+            if (position < definitions.size()) {
+                return 0;
+            }
+            if (manageModelsRow != -1 && position == manageModelsRow) {
+                return 0; // also a TextSettingsCell
+            }
+            return 1; // divider
         }
     }
 }

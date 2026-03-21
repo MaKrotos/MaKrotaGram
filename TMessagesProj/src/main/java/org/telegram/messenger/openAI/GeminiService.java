@@ -184,7 +184,6 @@ public class GeminiService extends BaseAIService {
                             callback.onSuccess(suggestions);
                         } catch (Exception e) {
                             FileLog.e("Error parsing Gemini response: " + e.getMessage());
-                            callback.onSuccess(createDefaultResponse());
                         }
                     } else {
                         handleErrorResponse(response, callback);

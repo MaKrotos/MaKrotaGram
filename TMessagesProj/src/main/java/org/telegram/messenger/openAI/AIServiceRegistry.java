@@ -44,6 +44,11 @@ public class AIServiceRegistry {
                 "Google Gemini",
                 "Использует модели Gemini от Google AI"
         ));
+        SERVICES.add(new ServiceInfo(
+                AISettings.AIServiceType.LOCAL_AI,
+                "Local AI",
+                "Локальные модели через sugar-pocketAI (Gemma, Qwen и др.)"
+        ));
     }
 
     /**

@@ -114,7 +114,6 @@ public class OpenAIService extends BaseAIService {
                                 callback.onSuccess(suggestions);
                             } catch (Exception e) {
                                 FileLog.e("Error parsing OpenAI response: " + e.getMessage());
-                                callback.onSuccess(createDefaultResponse());
                             }
                         } else {
                             callback.onError("Пустой ответ от API");

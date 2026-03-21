@@ -51,6 +51,7 @@ public class MagicActivity extends BaseFragment {
     private FrameLayout progressContainer;
     private TextView serviceInfoView;
     private View explanationView;
+    private boolean isGenerating = false;
 
     public MagicActivity() {
         super();
@@ -223,10 +224,7 @@ public class MagicActivity extends BaseFragment {
         animateViewsIn(titleView, serviceInfoView, countView,
                 promptText != null && !promptText.isEmpty() ? ((FrameLayout) contentLayout.getChildAt(4)) : null);
 
-        // Запускаем генерацию при создании представления
-        if (!selectedMessages.isEmpty()) {
-            checkAndGenerateSuggestions();
-        }
+        // Генерация будет запущена в onResume
 
         return fragmentView;
     }
@@ -395,6 +393,9 @@ public class MagicActivity extends BaseFragment {
     }
 
     private void checkAndGenerateSuggestions() {
+        if (isGenerating) {
+            return;
+        }
         if (!aiSettings.hasValidConfig()) {
             // Показываем сообщение об отсутствии ключа с анимацией
             noApiKeyView.setVisibility(View.VISIBLE);
@@ -413,6 +414,7 @@ public class MagicActivity extends BaseFragment {
         }
 
         noApiKeyView.setVisibility(View.GONE);
+        isGenerating = true;
         generateSuggestions();
     }
 
@@ -475,15 +477,10 @@ public class MagicActivity extends BaseFragment {
             suggestionsContainer.setAlpha(0f);
             suggestionsContainer.setTranslationY(AndroidUtilities.dp(30));
 
-            // Добавляем объяснение, если есть
-            if (response.has("explanation")) {
-                addExplanationView(response.getString("explanation"));
-            }
-
             // Добавляем предложения
             if (response.has("suggestions")) {
                 JSONArray suggestions = response.getJSONArray("suggestions");
-                // Вычисляем количество уже существующих предложений (исключая explanation)
+                // Вычисляем количество уже существующих предложений
                 int existingCount = 0;
                 for (int j = 0; j < suggestionsContainer.getChildCount(); j++) {
                     View child = suggestionsContainer.getChildAt(j);
@@ -492,11 +489,22 @@ public class MagicActivity extends BaseFragment {
                     }
                 }
                 for (int i = 0; i < suggestions.length(); i++) {
-                    JSONObject suggestion = suggestions.getJSONObject(i);
+                    String text;
+                    // Элемент может быть строкой или объектом
+                    Object item = suggestions.get(i);
+                    if (item instanceof String) {
+                        text = (String) item;
+                    } else if (item instanceof JSONObject) {
+                        JSONObject suggestion = (JSONObject) item;
+                        text = suggestion.optString("text", "");
+                    } else {
+                        continue;
+                    }
+                    if (text.isEmpty()) {
+                        continue;
+                    }
                     addSuggestionView(
-                            suggestion.getString("text"),
-                            suggestion.getString("type"),
-                            suggestion.getDouble("confidence"),
+                            text,
                             existingCount + i,
                             existingCount + suggestions.length()
                     );
@@ -513,6 +521,8 @@ public class MagicActivity extends BaseFragment {
 
         } catch (Exception e) {
             showError(LocaleController.getString("ResponseProcessingError", R.string.ResponseProcessingError) + ": " + e.getMessage());
+        } finally {
+            isGenerating = false;
         }
     }
 
@@ -569,7 +579,7 @@ public class MagicActivity extends BaseFragment {
                 .start();
     }
 
-    private void addSuggestionView(String text, String type, double confidence, int index, int totalCount) {
+    private void addSuggestionView(String text, int index, int totalCount) {
         Context context = getParentActivity();
         if (context == null) return;
 
@@ -587,65 +597,6 @@ public class MagicActivity extends BaseFragment {
                 Gravity.CENTER, 16, index == 0 ? 4 : 2, 16, 2
         );
         suggestionsContainer.addView(suggestionCard, cardParams);
-
-        // Верхняя строка с типом и уверенностью
-        LinearLayout topRow = new LinearLayout(context);
-        topRow.setOrientation(LinearLayout.HORIZONTAL);
-        suggestionCard.addView(topRow, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
-
-        String typeEmoji;
-        String typeText;
-        int typeColor;
-        switch (type) {
-            case "question":
-                typeEmoji = "❓";
-                typeText = LocaleController.getString("Question", R.string.Question);
-                typeColor = Theme.getColor(Theme.key_chat_messageLinkIn);
-                break;
-            case "continuation":
-                typeEmoji = "➡️";
-                typeText = LocaleController.getString("Continuation", R.string.Continuation);
-                typeColor = Theme.getColor(Theme.key_chat_messageLinkIn);
-                break;
-            case "humor":
-                typeEmoji = "😄";
-                typeText = LocaleController.getString("Humor", R.string.Humor);
-                typeColor = 0xFFFF9800;
-                break;
-            case "emoji":
-                typeEmoji = "😊";
-                typeText = LocaleController.getString("Emoji", R.string.Emoji);
-                typeColor = 0xFF9C27B0;
-                break;
-            default:
-                typeEmoji = "💬";
-                typeText = LocaleController.getString("Reply", R.string.Reply);
-                typeColor = Theme.getColor(Theme.key_windowBackgroundWhiteBlueText);
-        }
-
-        TextView typeView = new TextView(context);
-        typeView.setText(typeEmoji + " " + typeText);
-        typeView.setTextSize(14);
-        typeView.setTextColor(typeColor);
-        typeView.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"));
-        topRow.addView(typeView, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1.0f));
-
-        // Индикатор уверенности с цветом
-        int confidenceColor;
-        if (confidence >= 0.8) {
-            confidenceColor = 0xFF4CAF50;
-        } else if (confidence >= 0.5) {
-            confidenceColor = 0xFFFF9800;
-        } else {
-            confidenceColor = 0xFFF44336;
-        }
-
-        TextView confidenceView = new TextView(context);
-        confidenceView.setText((int) (confidence * 100) + "%");
-        confidenceView.setTextSize(13);
-        confidenceView.setTextColor(confidenceColor);
-        confidenceView.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"));
-        topRow.addView(confidenceView, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT));
 
         // Текст предложения
         TextView messageText = new TextView(context);
@@ -684,8 +635,7 @@ public class MagicActivity extends BaseFragment {
                     android.content.ClipData.newPlainText("suggested_message", text);
             clipboard.setPrimaryClip(clip);
 
-            // Визуальная обратная связь
-            Toast.makeText(context, LocaleController.getString("TextCopied", R.string.TextCopied), Toast.LENGTH_SHORT).show();
+
 
             // Анимация успешного копирования
             copyButton.setBackgroundDrawable(Theme.createRoundRectDrawable(
@@ -786,6 +736,8 @@ public class MagicActivity extends BaseFragment {
                 .setDuration(300)
                 .setInterpolator(new OvershootInterpolator())
                 .start();
+        
+        isGenerating = false;
     }
 
     @Override
