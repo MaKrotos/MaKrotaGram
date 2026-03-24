@@ -14,7 +14,6 @@ import java.util.Map;
 public class LocalAISettings extends BaseServiceSettings {
 
     // Field keys
-    private static final String KEY_HF_TOKEN = "hf_token";
     private static final String KEY_MODEL_PATH = "model_path";
     private static final String KEY_TEMPERATURE = "temperature";
     private static final String KEY_MAX_TOKENS = "max_tokens";
@@ -68,14 +67,6 @@ public class LocalAISettings extends BaseServiceSettings {
     }
 
     // Convenience getters/setters
-
-    public String getHfToken() {
-        return (String) getValue(KEY_HF_TOKEN);
-    }
-
-    public void setHfToken(String token) {
-        setValue(KEY_HF_TOKEN, token);
-    }
 
     public String getModelPath() {
         return (String) getValue(KEY_MODEL_PATH);
@@ -152,15 +143,6 @@ public class LocalAISettings extends BaseServiceSettings {
     @Override
     public List<SettingDefinition> getSettingDefinitions() {
         List<SettingDefinition> definitions = new ArrayList<>();
-        definitions.add(new SettingDefinition.Builder()
-                .setKey(KEY_HF_TOKEN)
-                .setType(SettingType.STRING)
-                .setTitle("Hugging Face Token")
-                .setDescription("Токен для загрузки моделей с Hugging Face (необязательно).")
-                .setMasked(true)
-                .setRequired(false)
-                .setDefaultValue("")
-                .build());
         definitions.add(new SettingDefinition.Builder()
                 .setKey(KEY_MODEL_PATH)
                 .setType(SettingType.STRING)
