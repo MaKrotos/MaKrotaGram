@@ -38,6 +38,21 @@ public abstract class BaseAIService {
                     "}\n\n" +
                     "Never return fewer than 3 options. The response must be only JSON.";
 
+    protected static final String SINGLE_RESPONSE_SYSTEM_PROMPT =
+            "You are an AI assistant that generates a single reply in a chat. Your task is to analyze the conversation history and write one appropriate response that the user can send. The response must be in first person (I, me, my) and ready to be sent.\n\n" +
+                    "Important rules:\n" +
+                    "1. If the last message is from the interlocutor, write a reply to them.\n" +
+                    "2. If the last message is from the user, write a continuation.\n" +
+                    "3. Consider the conversation context and relationship between interlocutors.\n" +
+                    "4. If there are images, stickers, voice messages, etc., simply consider their presence in the context.\n" +
+                    "5. The response should sound natural, as if written by a real person. Use casual, conversational style as in everyday messengers.\n" +
+                    "6. Write in the same language as the chat (or app language if unclear).\n\n" +
+                    "Respond ONLY in JSON format with the following structure:\n" +
+                    "{\n" +
+                    "  \"suggestion\": \"text of the response\"\n" +
+                    "}\n\n" +
+                    "The response must be only JSON.";
+
     protected int currentAccount;
     protected AISettings aiSettings;
 
@@ -77,9 +92,42 @@ public abstract class BaseAIService {
         return enhanced.toString();
     }
 
+    protected String getSingleResponseEnhancedSystemPrompt(long interlocutorId) {
+        StringBuilder enhanced = new StringBuilder();
+        enhanced.append(SINGLE_RESPONSE_SYSTEM_PROMPT);
+
+        String custom = aiSettings.getSystemPrompt();
+        if (custom != null && !custom.isEmpty()) {
+            enhanced.append("\n\n").append("=== BASE USER PROMPT ===\n").append(custom);
+        }
+
+        UserPromptService promptService = UserPromptService.getInstance(currentAccount);
+
+        // Prompt for myself
+        String myPrompt = promptService.getCurrentUserPrompt();
+        if (!TextUtils.isEmpty(myPrompt)) {
+            enhanced.append("\n\n").append("=== MY PROMPT ===\n").append(myPrompt);
+        }
+
+        // Prompt for interlocutor (if any)
+        if (interlocutorId > 0) {
+            String interlocutorPrompt = promptService.getPrompt(interlocutorId);
+            if (!TextUtils.isEmpty(interlocutorPrompt)) {
+                enhanced.append("\n\n").append("=== INTERLOCUTOR PROMPT ===\n").append(interlocutorPrompt);
+            }
+        }
+
+        return enhanced.toString();
+    }
+
     public interface Callback {
         void onSuccess(JSONObject response);
 
+        void onError(String error);
+    }
+
+    public interface SingleResponseCallback {
+        void onSuccess(String response);
         void onError(String error);
     }
 
@@ -204,6 +252,75 @@ public abstract class BaseAIService {
         generateSuggestions(messages, null, callback);
     }
 
+    // Генерация одного ответа
+    public void generateSingleResponse(ArrayList<MessageObject> messages, String userPrompt, SingleResponseCallback callback) {
+        if (!hasValidConfig()) {
+            callback.onError(getServiceName() + " is not configured. Please check settings.");
+            return;
+        }
+
+        try {
+            // Получаем выбранную модель из настроек
+            String modelId = getModel();
+            AIModel model = getModelById(modelId);
+            if (model == null) {
+                model = getModelById(getDefaultModelId());
+            }
+
+            // Вычисляем ID собеседника для enhanced системного промпта
+            long interlocutorId = getInterlocutorId(messages);
+            String systemPrompt = getSingleResponseEnhancedSystemPrompt(interlocutorId);
+
+            // Формируем историю переписки для одного ответа
+            String conversationHistory = buildSingleResponseConversationHistory(messages, userPrompt, interlocutorId);
+
+            // Создаём адаптер callback, который преобразует JSON в строку
+            Callback adapter = new Callback() {
+                @Override
+                public void onSuccess(JSONObject response) {
+                    try {
+                        // Пытаемся извлечь поле "suggestion"
+                        if (response.has("suggestion")) {
+                            String suggestion = response.getString("suggestion");
+                            callback.onSuccess(suggestion);
+                            return;
+                        }
+                        // Fallback: если есть "suggestions", берём первый элемент
+                        if (response.has("suggestions")) {
+                            JSONArray suggestions = response.getJSONArray("suggestions");
+                            if (suggestions.length() > 0) {
+                                String firstSuggestion = suggestions.getString(0);
+                                callback.onSuccess(firstSuggestion);
+                                return;
+                            }
+                        }
+                        // Если ни одного поля нет, возвращаем ошибку
+                        throw new Exception("No 'suggestion' or 'suggestions' field found");
+                    } catch (Exception e) {
+                        FileLog.e("Error parsing single response JSON: " + e.getMessage());
+                        callback.onError("Invalid response format: missing 'suggestion' field");
+                    }
+                }
+
+                @Override
+                public void onError(String error) {
+                    callback.onError(error);
+                }
+            };
+
+            // Отправляем запрос в конкретный сервис с указанием модели
+            makeRequest(systemPrompt, conversationHistory, model.id, adapter);
+
+        } catch (Exception e) {
+            FileLog.e("Error creating single response request: " + e.getMessage());
+            callback.onError("Error creating request: " + e.getMessage());
+        }
+    }
+
+    public void generateSingleResponse(ArrayList<MessageObject> messages, SingleResponseCallback callback) {
+        generateSingleResponse(messages, null, callback);
+    }
+
     // Формирование истории переписки (без дублирования промптов)
     protected String buildConversationHistory(ArrayList<MessageObject> messages, String userPrompt, long interlocutorId) {
         StringBuilder history = new StringBuilder();
@@ -282,6 +399,88 @@ public abstract class BaseAIService {
         history.append("SUGGEST 3-5 DIFFERENT OPTIONS ON BEHALF OF ").append(interlocutorName).append("\n");
         history.append("MUST use 'I', 'me', 'my' (first person)\n");
         history.append("RESPONSE ONLY IN JSON FORMAT\n");
+
+        return history.toString();
+    }
+
+    // Формирование истории переписки для генерации одного ответа
+    protected String buildSingleResponseConversationHistory(ArrayList<MessageObject> messages, String userPrompt, long interlocutorId) {
+        StringBuilder history = new StringBuilder();
+
+        long currentUserId = UserConfig.getInstance(currentAccount).getClientUserId();
+
+        TLRPC.User currentUser = UserConfig.getInstance(currentAccount).getCurrentUser();
+        String myName = currentUser != null ? getDisplayName(currentUser) : "Me (bot)";
+
+        String interlocutorName = "INTERLOCUTOR";
+        if (interlocutorId > 0) {
+            TLRPC.User interlocutor = MessagesController.getInstance(currentAccount).getUser(interlocutorId);
+            if (interlocutor != null) {
+                interlocutorName = getDisplayName(interlocutor);
+            }
+        }
+
+        // Add user prompt if any
+        if (!TextUtils.isEmpty(userPrompt)) {
+            history.append("USER INSTRUCTION: ").append(userPrompt).append("\n\n");
+        }
+
+        // Промпты из UserPromptService больше не добавляются здесь, они включены в системный промпт
+
+        // Add chat information
+        history.append("========== CHAT INFO ==========\n");
+        history.append("Me (bot): ").append(myName).append("\n");
+        history.append("HELPING: ").append(interlocutorName).append("\n");
+        // Add app language
+        Locale currentLocale = LocaleController.getInstance().getCurrentLocale();
+        String appLanguage = currentLocale.getDisplayLanguage(Locale.ENGLISH);
+        history.append("APP LANGUAGE: ").append(appLanguage).append("\n");
+
+        // Determine chat type
+        boolean isGroupChat = isGroupChat(messages);
+        if (isGroupChat) {
+            history.append("CHAT TYPE: Group\n");
+            addGroupParticipants(history, messages);
+        } else {
+            history.append("CHAT TYPE: Private\n");
+        }
+
+        // Анализ последнего сообщения
+        MessageObject lastMessage = messages.get(messages.size() - 1);
+        boolean lastMessageIsFromInterlocutor = lastMessage.getSenderId() == interlocutorId;
+        boolean lastMessageIsFromMe = lastMessage.getSenderId() == currentUserId;
+
+        history.append("\n========== CURRENT SITUATION ==========\n");
+        if (lastMessageIsFromInterlocutor) {
+            history.append("").append(interlocutorName).append(" wrote the last message\n");
+            history.append("Task: write a CONTINUATION\n");
+        } else {
+            history.append("").append(getSenderNameFromId(lastMessage.getSenderId())).append(" wrote the last message\n");
+            history.append("Task: write a REPLY on behalf of ").append(interlocutorName).append("\n");
+        }
+
+        // Message history
+        history.append("\n========== CONVERSATION HISTORY ==========\n");
+        history.append("(Messages from oldest to newest)\n\n");
+
+        for (int i = 0; i < messages.size(); i++) {
+            MessageObject msg = messages.get(i);
+            String sender = getSenderName(msg, currentUserId, myName, interlocutorName, interlocutorId);
+            String text = getMessageText(msg);
+
+            if (i == messages.size() - 1) {
+                history.append("[LAST] ");
+            } else if (i == messages.size() - 2) {
+                history.append("[SECOND LAST] ");
+            }
+
+            history.append(sender).append(": ").append(text).append("\n");
+        }
+
+        history.append("\n========== RESPONSE REQUIREMENTS ==========\n");
+        history.append("WRITE A SINGLE RESPONSE ON BEHALF OF ").append(interlocutorName).append("\n");
+        history.append("MUST use 'I', 'me', 'my' (first person)\n");
+        history.append("RESPONSE ONLY IN JSON FORMAT with a single 'suggestion' field\n");
 
         return history.toString();
     }
