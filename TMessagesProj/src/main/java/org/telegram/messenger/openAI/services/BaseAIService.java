@@ -23,10 +23,10 @@ import java.util.Set;
 public abstract class BaseAIService {
 
     protected static final String SYSTEM_PROMPT =
-            "You are an AI assistant that suggests reply options in a chat. Your task is to analyze the conversation history and suggest 3-5 different response options that the user can send. All options must be in first person (I, me, my) and ready to be sent.\n\n" +
+            "You are an AI assistant that suggests reply options in a chat. Your task is to analyze the conversation history and suggest 3-5 different response options that the user (Me) can send. All options must be in first person (I, me, my) from the perspective of the user (Me) and ready to be sent.\n\n" +
                     "Important rules:\n" +
-                    "1. If the last message is from the interlocutor, suggest replies to them.\n" +
-                    "2. If the last message is from the user, suggest continuations.\n" +
+                    "1. If the last message is from the interlocutor, suggest reply options that the user (Me) can send to them.\n" +
+                    "2. If the last message is from the user (Me), suggest continuation options that the user can send next.\n" +
                     "3. Options must be diverse in style and content.\n" +
                     "4. Consider the conversation context and relationship between interlocutors.\n" +
                     "5. If there are images, stickers, voice messages, etc., simply consider their presence in the context.\n" +
@@ -43,10 +43,10 @@ public abstract class BaseAIService {
                     "Never return fewer than 3 options. The response must be only JSON.";
 
     protected static final String SINGLE_RESPONSE_SYSTEM_PROMPT =
-            "You are an AI assistant that generates a single reply in a chat. Your task is to analyze the conversation history and write one appropriate response that the user can send. The response must be in first person (I, me, my) and ready to be sent.\n\n" +
+            "You are an AI assistant that generates a single reply in a chat. Your task is to analyze the conversation history and write one appropriate response that the user (Me) can send. The response must be in first person (I, me, my) from the perspective of the user (Me) and ready to be sent.\n\n" +
                     "Important rules:\n" +
-                    "1. If the last message is from the interlocutor, write a reply to them.\n" +
-                    "2. If the last message is from the user, write a continuation.\n" +
+                    "1. If the last message is from the interlocutor, write a reply that the user (Me) can send to them.\n" +
+                    "2. If the last message is from the user (Me), write a continuation that the user can send next.\n" +
                     "3. Consider the conversation context and relationship between interlocutors.\n" +
                     "4. If there are images, stickers, voice messages, etc., simply consider their presence in the context.\n" +
                     "5. The response should sound natural, as if written by a real person. Use casual, conversational style as in everyday messengers.\n" +
@@ -512,7 +512,7 @@ public abstract class BaseAIService {
         // Add chat information
         history.append("========== CHAT INFO ==========\n");
         history.append("Me (bot): ").append(myName).append("\n");
-        history.append("HELPING: ").append(interlocutorName).append("\n");
+        history.append("Interlocutor: ").append(interlocutorName).append("\n");
         // Add app language
         Locale currentLocale = LocaleController.getInstance().getCurrentLocale();
         String appLanguage = currentLocale.getDisplayLanguage(Locale.ENGLISH);
@@ -530,15 +530,14 @@ public abstract class BaseAIService {
         // Анализ последнего сообщения
         MessageObject lastMessage = messages.get(messages.size() - 1);
         boolean lastMessageIsFromInterlocutor = lastMessage.getSenderId() == interlocutorId;
-        boolean lastMessageIsFromMe = lastMessage.getSenderId() == currentUserId;
 
         history.append("\n========== CURRENT SITUATION ==========\n");
         if (lastMessageIsFromInterlocutor) {
             history.append("").append(interlocutorName).append(" wrote the last message\n");
-            history.append("Task: suggest CONTINUATION options\n");
+            history.append("Task: suggest REPLY options that the user (Me) can send to them\n");
         } else {
             history.append("").append(getSenderNameFromId(lastMessage.getSenderId())).append(" wrote the last message\n");
-            history.append("Task: suggest REPLY options on behalf of ").append(interlocutorName).append("\n");
+            history.append("Task: suggest CONTINUATION options that the user (Me) can send next\n");
         }
 
         // Message history
@@ -560,8 +559,8 @@ public abstract class BaseAIService {
         }
 
         history.append("\n========== RESPONSE REQUIREMENTS ==========\n");
-        history.append("SUGGEST 3-5 DIFFERENT OPTIONS ON BEHALF OF ").append(interlocutorName).append("\n");
-        history.append("MUST use 'I', 'me', 'my' (first person)\n");
+        history.append("SUGGEST 3-5 DIFFERENT OPTIONS THAT THE USER (Me) CAN SEND\n");
+        history.append("All options must be in first person (I, me, my) from the perspective of the user (Me)\n");
         history.append("RESPONSE ONLY IN JSON FORMAT\n");
 
         return history.toString();
@@ -594,7 +593,7 @@ public abstract class BaseAIService {
         // Add chat information
         history.append("========== CHAT INFO ==========\n");
         history.append("Me (bot): ").append(myName).append("\n");
-        history.append("HELPING: ").append(interlocutorName).append("\n");
+        history.append("Interlocutor: ").append(interlocutorName).append("\n");
         // Add app language
         Locale currentLocale = LocaleController.getInstance().getCurrentLocale();
         String appLanguage = currentLocale.getDisplayLanguage(Locale.ENGLISH);
@@ -612,15 +611,14 @@ public abstract class BaseAIService {
         // Анализ последнего сообщения
         MessageObject lastMessage = messages.get(messages.size() - 1);
         boolean lastMessageIsFromInterlocutor = lastMessage.getSenderId() == interlocutorId;
-        boolean lastMessageIsFromMe = lastMessage.getSenderId() == currentUserId;
 
         history.append("\n========== CURRENT SITUATION ==========\n");
         if (lastMessageIsFromInterlocutor) {
             history.append("").append(interlocutorName).append(" wrote the last message\n");
-            history.append("Task: write a CONTINUATION\n");
+            history.append("Task: write a REPLY that the user (Me) can send to them\n");
         } else {
             history.append("").append(getSenderNameFromId(lastMessage.getSenderId())).append(" wrote the last message\n");
-            history.append("Task: write a REPLY on behalf of ").append(interlocutorName).append("\n");
+            history.append("Task: write a CONTINUATION that the user (Me) can send next\n");
         }
 
         // Message history
@@ -642,8 +640,8 @@ public abstract class BaseAIService {
         }
 
         history.append("\n========== RESPONSE REQUIREMENTS ==========\n");
-        history.append("WRITE A SINGLE RESPONSE ON BEHALF OF ").append(interlocutorName).append("\n");
-        history.append("MUST use 'I', 'me', 'my' (first person)\n");
+        history.append("WRITE A SINGLE RESPONSE THAT THE USER (Me) CAN SEND\n");
+        history.append("The response must be in first person (I, me, my) from the perspective of the user (Me)\n");
         history.append("RESPONSE ONLY IN JSON FORMAT with a single 'suggestion' field\n");
 
         return history.toString();
