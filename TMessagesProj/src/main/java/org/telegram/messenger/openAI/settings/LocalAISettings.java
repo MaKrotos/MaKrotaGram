@@ -2,6 +2,7 @@ package org.telegram.messenger.openAI;
 
 import android.text.TextUtils;
 import org.telegram.messenger.FileLog;
+import org.telegram.messenger.openAI.SettingType;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -23,6 +24,7 @@ public class LocalAISettings extends BaseServiceSettings {
     private static final String KEY_BATCH_SIZE = "batch_size";
     private static final String KEY_THREADS = "threads";
     private static final String KEY_ACCELERATOR = "accelerator";
+    private static final String KEY_HF_TOKEN = "hf_token";
 
     // Default values
     public static final String DEFAULT_MODEL = "Gemma-3n-E2B-it";
@@ -138,6 +140,14 @@ public class LocalAISettings extends BaseServiceSettings {
 
     public void setAccelerator(String accelerator) {
         setValue(KEY_ACCELERATOR, accelerator);
+    }
+
+    public String getHfToken() {
+        return (String) getValue(KEY_HF_TOKEN);
+    }
+
+    public void setHfToken(String token) {
+        setValue(KEY_HF_TOKEN, token);
     }
 
     @Override
@@ -257,6 +267,15 @@ public class LocalAISettings extends BaseServiceSettings {
                             "gpu"
                     ));
                 }})
+                .build());
+        definitions.add(new SettingDefinition.Builder()
+                .setKey(KEY_HF_TOKEN)
+                .setType(SettingType.STRING)
+                .setTitle("Hugging Face Token")
+                .setDescription("Токен для доступа к моделям Hugging Face (необязательно).")
+                .setMasked(true)
+                .setRequired(false)
+                .setDefaultValue("")
                 .build());
         return definitions;
     }

@@ -22,6 +22,9 @@ import org.telegram.ui.Components.RecyclerListView;
 
 import java.util.List;
 
+import org.telegram.messenger.openAI.models.AIStyle;
+import org.telegram.messenger.openAI.AIStyleService;
+
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -38,6 +41,9 @@ public class AISettingsActivity extends BaseFragment {
     private int[] serviceRows;
     private int promptHeaderRow;
     private int promptRow;
+    private int styleHeaderRow;
+    private int selectedStyleRow;
+    private int manageStylesRow;
     private int dividerRow;
     private int testHeaderRow;
     private int testConnectionRow;
@@ -71,6 +77,9 @@ public class AISettingsActivity extends BaseFragment {
         }
         promptHeaderRow = rowCount++;
         promptRow = rowCount++;
+        styleHeaderRow = rowCount++;
+        selectedStyleRow = rowCount++;
+        manageStylesRow = rowCount++;
         dividerRow = rowCount++;
         testHeaderRow = rowCount++;
         testConnectionRow = rowCount++;
@@ -134,6 +143,14 @@ public class AISettingsActivity extends BaseFragment {
             }
             if (position == promptRow) {
                 editPrompt();
+                return;
+            }
+            if (position == selectedStyleRow) {
+                showStyleSelectionDialog();
+                return;
+            }
+            if (position == manageStylesRow) {
+                openManageStylesActivity();
                 return;
             }
             if (position == testConnectionRow) {
@@ -247,6 +264,75 @@ public class AISettingsActivity extends BaseFragment {
         builder.show();
     }
 
+    private void showStyleSelectionDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(getParentActivity());
+        builder.setTitle("Выберите стиль");
+
+        LinearLayout container = new LinearLayout(getParentActivity());
+        container.setOrientation(LinearLayout.VERTICAL);
+        container.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8));
+
+        RecyclerListView listView = new RecyclerListView(getParentActivity());
+        listView.setLayoutManager(new LinearLayoutManager(getParentActivity(), LinearLayoutManager.VERTICAL, false));
+        List<AIStyle> styles = AIStyleService.getInstance().getAllStyles();
+        AIStyle selectedStyle = AIStyleService.getInstance().getSelectedStyle(currentAccount);
+        final int selectedIndex;
+        {
+            int idx = -1;
+            for (int i = 0; i < styles.size(); i++) {
+                if (styles.get(i).getId().equals(selectedStyle != null ? selectedStyle.getId() : null)) {
+                    idx = i;
+                    break;
+                }
+            }
+            selectedIndex = idx;
+        }
+        listView.setAdapter(new RecyclerView.Adapter() {
+            private final int VIEW_TYPE_ITEM = 0;
+
+            @Override
+            public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+                TextSettingsCell cell = new TextSettingsCell(parent.getContext());
+                cell.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite));
+                return new RecyclerListView.Holder(cell);
+            }
+
+            @Override
+            public void onBindViewHolder(RecyclerView.ViewHolder holder, int position) {
+                TextSettingsCell cell = (TextSettingsCell) holder.itemView;
+                AIStyle style = styles.get(position);
+                cell.setText(style.getName(), position == selectedIndex);
+            }
+
+            @Override
+            public int getItemCount() {
+                return styles.size();
+            }
+
+            @Override
+            public int getItemViewType(int position) {
+                return VIEW_TYPE_ITEM;
+            }
+        });
+        listView.setOnItemClickListener((view, position) -> {
+            AIStyle style = styles.get(position);
+            AIStyleService.getInstance().setSelectedStyle(currentAccount, style);
+            if (listAdapter != null) {
+                listAdapter.notifyDataSetChanged();
+            }
+            builder.getDismissRunnable().run();
+        });
+
+        container.addView(listView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 0));
+        builder.setView(container);
+        builder.setNegativeButton(LocaleController.getString("Cancel", R.string.Cancel), null);
+        builder.show();
+    }
+
+    private void openManageStylesActivity() {
+        presentFragment(new AIStylesActivity());
+    }
+
     private void showAlertWithOk(String title, String message) {
         AlertDialog.Builder builder = new AlertDialog.Builder(getParentActivity());
         builder.setTitle(title);
@@ -279,6 +365,8 @@ public class AISettingsActivity extends BaseFragment {
                         headerCell.setText("Выберите AI сервис");
                     } else if (position == promptHeaderRow) {
                         headerCell.setText("Промпт");
+                    } else if (position == styleHeaderRow) {
+                        headerCell.setText("Стили ответа");
                     } else if (position == testHeaderRow) {
                         headerCell.setText("Проверка соединения");
                     }
@@ -297,6 +385,12 @@ public class AISettingsActivity extends BaseFragment {
                         } else {
                             textCell.setText("Промпт: " + (prompt.length() > 20 ? prompt.substring(0, 20) + "..." : prompt), false);
                         }
+                    } else if (position == selectedStyleRow) {
+                        AIStyle selectedStyle = AIStyleService.getInstance().getSelectedStyle(currentAccount);
+                        String styleName = selectedStyle != null ? selectedStyle.getName() : "Не выбран";
+                        textCell.setText("Выбранный стиль: " + styleName, false);
+                    } else if (position == manageStylesRow) {
+                        textCell.setText("Управление стилями", false);
                     } else {
                         for (int i = 0; i < serviceInfos.size(); i++) {
                             if (position == serviceRows[i]) {
@@ -336,6 +430,9 @@ public class AISettingsActivity extends BaseFragment {
             if (position == promptRow) {
                 return true;
             }
+            if (position == selectedStyleRow || position == manageStylesRow) {
+                return true;
+            }
             return position == testConnectionRow;
         }
 
@@ -365,7 +462,7 @@ public class AISettingsActivity extends BaseFragment {
 
         @Override
         public int getItemViewType(int position) {
-            if (position == selectedServiceHeaderRow || position == headerRow || position == testHeaderRow || position == promptHeaderRow) {
+            if (position == selectedServiceHeaderRow || position == headerRow || position == testHeaderRow || position == promptHeaderRow || position == styleHeaderRow) {
                 return 0; // Header
             }
             if (position == selectedServiceRow) {
@@ -376,8 +473,8 @@ public class AISettingsActivity extends BaseFragment {
                     return 1; // Service row
                 }
             }
-            if (position == promptRow) {
-                return 1; // TextSettingsCell для промпта
+            if (position == promptRow || position == selectedStyleRow || position == manageStylesRow) {
+                return 1; // TextSettingsCell для промпта и стилей
             }
             if (position == testConnectionRow) {
                 return 2; // Test row

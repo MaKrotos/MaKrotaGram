@@ -12,6 +12,7 @@ import android.view.animation.AccelerateDecelerateInterpolator;
 import android.view.animation.DecelerateInterpolator;
 import android.view.animation.OvershootInterpolator;
 import android.widget.FrameLayout;
+import android.widget.HorizontalScrollView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -28,6 +29,8 @@ import org.telegram.messenger.openAI.AIServiceFactory;
 import org.telegram.messenger.openAI.AISettings;
 import org.telegram.messenger.openAI.AISettingsActivity;
 import org.telegram.messenger.openAI.BaseAIService;
+import org.telegram.messenger.openAI.AIStyleService;
+import org.telegram.messenger.openAI.models.AIStyle;
 import org.telegram.ui.ActionBar.ActionBar;
 import org.telegram.ui.ActionBar.AlertDialog;
 import org.telegram.ui.ActionBar.BaseFragment;
@@ -36,6 +39,7 @@ import org.telegram.ui.Components.LayoutHelper;
 import org.telegram.ui.Components.RadialProgressView;
 
 import java.util.ArrayList;
+import java.util.List;
 
 public class MagicActivity extends BaseFragment {
 
@@ -54,6 +58,10 @@ public class MagicActivity extends BaseFragment {
     private boolean isGenerating = false;
     private boolean hasGenerated = false;
     private TextView tokensProgressView;
+    private String selectedStyleId = null;
+    private LinearLayout styleChipsContainer;
+    private FrameLayout generateButton;
+    private boolean userRequestedGeneration = false;
 
     public MagicActivity() {
         super();
@@ -66,6 +74,48 @@ public class MagicActivity extends BaseFragment {
     private void updateService() {
         aiService = AIServiceFactory.createService(currentAccount);
         hasGenerated = false;
+        loadSelectedStyleId();
+    }
+
+    private void loadSelectedStyleId() {
+        selectedStyleId = AIStyleService.getInstance().getSelectedStyleId(currentAccount);
+    }
+
+    private void createStyleChips(Context context) {
+        styleChipsContainer.removeAllViews();
+        List<AIStyle> styles = AIStyleService.getInstance().getAllStyles();
+        for (AIStyle style : styles) {
+            FrameLayout chip = new FrameLayout(context);
+            chip.setBackgroundDrawable(Theme.createRoundRectDrawable(
+                    AndroidUtilities.dp(16),
+                    style.getId().equals(selectedStyleId) ?
+                            Theme.getColor(Theme.key_featuredStickers_addButton) :
+                            Theme.getColor(Theme.key_windowBackgroundWhite)
+            ));
+            chip.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(8),
+                    AndroidUtilities.dp(12), AndroidUtilities.dp(8));
+            LinearLayout.LayoutParams chipParams = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+            );
+            chipParams.setMargins(0, 0, AndroidUtilities.dp(8), 0);
+            styleChipsContainer.addView(chip, chipParams);
+
+            TextView chipText = new TextView(context);
+            chipText.setText(style.getName());
+            chipText.setTextSize(14);
+            chipText.setTextColor(style.getId().equals(selectedStyleId) ?
+                    Theme.getColor(Theme.key_featuredStickers_buttonText) :
+                    Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
+            chipText.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"));
+            chip.addView(chipText, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER));
+
+            chip.setOnClickListener(v -> {
+                selectedStyleId = style.getId();
+                AIStyleService.getInstance().setSelectedStyleId(currentAccount, selectedStyleId);
+                createStyleChips(context); // перерисовываем chips
+            });
+        }
     }
 
     public void setSelectedMessages(ArrayList<MessageObject> messages) {
@@ -188,6 +238,70 @@ public class MagicActivity extends BaseFragment {
         noApiKeyView.setAlpha(0f);
         noApiKeyView.setScaleX(0.9f);
         noApiKeyView.setScaleY(0.9f);
+
+        // Контейнер для выбора стилей (chips)
+        LinearLayout styleContainer = new LinearLayout(context);
+        styleContainer.setOrientation(LinearLayout.VERTICAL);
+        styleContainer.setPadding(AndroidUtilities.dp(20), AndroidUtilities.dp(10), AndroidUtilities.dp(20), AndroidUtilities.dp(10));
+        contentLayout.addView(styleContainer, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER, 20, 10, 20, 10));
+
+        TextView styleLabel = new TextView(context);
+        styleLabel.setText("Стиль ответа:");
+        styleLabel.setTextSize(15);
+        styleLabel.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
+        styleLabel.setGravity(Gravity.START);
+        styleLabel.setPadding(0, 0, 0, AndroidUtilities.dp(8));
+        styleContainer.addView(styleLabel, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
+
+        HorizontalScrollView scrollViewChips = new HorizontalScrollView(context);
+        scrollViewChips.setHorizontalScrollBarEnabled(false);
+        styleChipsContainer = new LinearLayout(context);
+        styleChipsContainer.setOrientation(LinearLayout.HORIZONTAL);
+        styleChipsContainer.setPadding(0, 0, 0, 0);
+        scrollViewChips.addView(styleChipsContainer, LayoutHelper.createScroll(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.LEFT | Gravity.CENTER_VERTICAL));
+        styleContainer.addView(scrollViewChips, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
+
+        // Заполняем chips
+        createStyleChips(context);
+
+        // Кнопка генерации
+        generateButton = new FrameLayout(context);
+        generateButton.setBackgroundDrawable(Theme.createRoundRectDrawable(
+                AndroidUtilities.dp(12),
+                Theme.getColor(Theme.key_featuredStickers_addButton)
+        ));
+        generateButton.setPadding(AndroidUtilities.dp(24), AndroidUtilities.dp(16),
+                AndroidUtilities.dp(24), AndroidUtilities.dp(16));
+        LinearLayout.LayoutParams buttonParams = LayoutHelper.createLinear(
+                LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT,
+                Gravity.CENTER, 0, 20, 0, 20
+        );
+        contentLayout.addView(generateButton, buttonParams);
+
+        LinearLayout buttonContent = new LinearLayout(context);
+        buttonContent.setOrientation(LinearLayout.HORIZONTAL);
+        buttonContent.setGravity(Gravity.CENTER);
+
+        TextView buttonIcon = new TextView(context);
+        buttonIcon.setText("✨");
+        buttonIcon.setTextSize(18);
+        buttonContent.addView(buttonIcon, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT));
+
+        TextView buttonText = new TextView(context);
+        buttonText.setText("Сгенерировать предложения");
+        buttonText.setTextSize(16);
+        buttonText.setTextColor(Theme.getColor(Theme.key_featuredStickers_buttonText));
+        buttonText.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"));
+        buttonText.setPadding(AndroidUtilities.dp(8), 0, 0, 0);
+        buttonContent.addView(buttonText, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT));
+
+        generateButton.addView(buttonContent, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER));
+
+        generateButton.setOnClickListener(v -> {
+            animateButtonPress(generateButton);
+            userRequestedGeneration = true;
+            checkAndGenerateSuggestions();
+        });
 
         // Контейнер для прогресса
         progressContainer = new FrameLayout(context);
@@ -479,7 +593,7 @@ public class MagicActivity extends BaseFragment {
         });
         progressAnim.start();
 
-        aiService.generateSuggestions(selectedMessages, promptText, new BaseAIService.Callback() {
+        aiService.generateSuggestions(selectedMessages, promptText, selectedStyleId, new BaseAIService.Callback() {
             @Override
             public void onSuccess(JSONObject response) {
                 AndroidUtilities.runOnUIThread(() -> {
@@ -782,10 +896,11 @@ public class MagicActivity extends BaseFragment {
         // Обновляем сервис при возвращении из настроек
         updateService();
         updateServiceInfo();
-        // Перепроверяем наличие ключа
-        if (!selectedMessages.isEmpty()) {
-            checkAndGenerateSuggestions();
+        // Обновляем chips стилей
+        if (styleChipsContainer != null && getParentActivity() != null) {
+            createStyleChips(getParentActivity());
         }
+        // Не запускаем генерацию автоматически - ждём нажатия кнопки
     }
 
     public String getPromptText() {

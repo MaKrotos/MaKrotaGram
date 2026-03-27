@@ -10,6 +10,8 @@ import org.telegram.messenger.MessageObject;
 import org.telegram.messenger.MessagesController;
 import org.telegram.messenger.UserConfig;
 import org.telegram.messenger.openAI.UserPromptService;
+import org.telegram.messenger.openAI.AIStyleService;
+import org.telegram.messenger.openAI.models.AIStyle;
 import org.telegram.tgnet.TLRPC;
 import java.util.Locale;
 import java.util.ArrayList;
@@ -65,6 +67,10 @@ public abstract class BaseAIService {
     }
 
     protected String getEnhancedSystemPrompt(long interlocutorId) {
+        return getEnhancedSystemPrompt(interlocutorId, null);
+    }
+
+    protected String getEnhancedSystemPrompt(long interlocutorId, String styleId) {
         StringBuilder enhanced = new StringBuilder();
         enhanced.append(SYSTEM_PROMPT);
 
@@ -89,10 +95,22 @@ public abstract class BaseAIService {
             }
         }
 
+        // Style prompt
+        if (styleId != null) {
+            AIStyle style = AIStyleService.getInstance().getStyleById(styleId);
+            if (style != null && !TextUtils.isEmpty(style.getPrompt())) {
+                enhanced.append("\n\n").append("=== STYLE: ").append(style.getName()).append(" ===\n").append(style.getPrompt());
+            }
+        }
+
         return enhanced.toString();
     }
 
     protected String getSingleResponseEnhancedSystemPrompt(long interlocutorId) {
+        return getSingleResponseEnhancedSystemPrompt(interlocutorId, null);
+    }
+
+    protected String getSingleResponseEnhancedSystemPrompt(long interlocutorId, String styleId) {
         StringBuilder enhanced = new StringBuilder();
         enhanced.append(SINGLE_RESPONSE_SYSTEM_PROMPT);
 
@@ -114,6 +132,14 @@ public abstract class BaseAIService {
             String interlocutorPrompt = promptService.getPrompt(interlocutorId);
             if (!TextUtils.isEmpty(interlocutorPrompt)) {
                 enhanced.append("\n\n").append("=== INTERLOCUTOR PROMPT ===\n").append(interlocutorPrompt);
+            }
+        }
+
+        // Style prompt
+        if (styleId != null) {
+            AIStyle style = AIStyleService.getInstance().getStyleById(styleId);
+            if (style != null && !TextUtils.isEmpty(style.getPrompt())) {
+                enhanced.append("\n\n").append("=== STYLE: ").append(style.getName()).append(" ===\n").append(style.getPrompt());
             }
         }
 
@@ -219,6 +245,10 @@ public abstract class BaseAIService {
 
     // Общая логика генерации запроса
     public void generateSuggestions(ArrayList<MessageObject> messages, String userPrompt, Callback callback) {
+        generateSuggestions(messages, userPrompt, null, callback);
+    }
+
+    public void generateSuggestions(ArrayList<MessageObject> messages, String userPrompt, String styleId, Callback callback) {
         if (!hasValidConfig()) {
             callback.onError(getServiceName() + " is not configured. Please check settings.");
             return;
@@ -234,7 +264,7 @@ public abstract class BaseAIService {
 
             // Вычисляем ID собеседника для enhanced системного промпта
             long interlocutorId = getInterlocutorId(messages);
-            String systemPrompt = getEnhancedSystemPrompt(interlocutorId);
+            String systemPrompt = getEnhancedSystemPrompt(interlocutorId, styleId);
 
             // Формируем историю переписки (без дублирования промптов)
             String conversationHistory = buildConversationHistory(messages, userPrompt, interlocutorId);
@@ -249,11 +279,15 @@ public abstract class BaseAIService {
     }
 
     public void generateSuggestions(ArrayList<MessageObject> messages, Callback callback) {
-        generateSuggestions(messages, null, callback);
+        generateSuggestions(messages, null, null, callback);
     }
 
     // Генерация одного ответа
     public void generateSingleResponse(ArrayList<MessageObject> messages, String userPrompt, SingleResponseCallback callback) {
+        generateSingleResponse(messages, userPrompt, null, callback);
+    }
+
+    public void generateSingleResponse(ArrayList<MessageObject> messages, String userPrompt, String styleId, SingleResponseCallback callback) {
         if (!hasValidConfig()) {
             callback.onError(getServiceName() + " is not configured. Please check settings.");
             return;
@@ -269,7 +303,7 @@ public abstract class BaseAIService {
 
             // Вычисляем ID собеседника для enhanced системного промпта
             long interlocutorId = getInterlocutorId(messages);
-            String systemPrompt = getSingleResponseEnhancedSystemPrompt(interlocutorId);
+            String systemPrompt = getSingleResponseEnhancedSystemPrompt(interlocutorId, styleId);
 
             // Формируем историю переписки для одного ответа
             String conversationHistory = buildSingleResponseConversationHistory(messages, userPrompt, interlocutorId);
@@ -318,7 +352,7 @@ public abstract class BaseAIService {
     }
 
     public void generateSingleResponse(ArrayList<MessageObject> messages, SingleResponseCallback callback) {
-        generateSingleResponse(messages, null, callback);
+        generateSingleResponse(messages, null, null, callback);
     }
 
     // Формирование истории переписки (без дублирования промптов)

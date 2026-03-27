@@ -106,12 +106,10 @@ public class ModelManagerFragment extends BaseFragment {
 
     private void loadData() {
         // Получить рекомендованные модели (используя токен из настроек)
-        LocalAISettings settings = (LocalAISettings) new AISettings(UserConfig.selectedAccount).getServiceSettings(AISettings.AIServiceType.LOCAL_AI);
-        String token = settings.getHfToken();
-        if (token == null || token.isEmpty()) {
-            // fallback to static token if available
-            token = tw.fdw.makrotagram.Extra.HUGGINGFACETOKEN;
-        }
+        org.telegram.messenger.openAI.LocalAISettings settings = (org.telegram.messenger.openAI.LocalAISettings) new org.telegram.messenger.openAI.AISettings(UserConfig.selectedAccount).getServiceSettings(org.telegram.messenger.openAI.AISettings.AIServiceType.LOCAL_AI);
+
+        var token = tw.fdw.makrotagram.Extra.HUGGINGFACETOKEN;
+
         recommendedModels = ModelCatalog.getDefaultModels(token);
         // Получить скачанные модели из базы
         downloadedModels = modelManager.scanAndAddModels(null);
@@ -455,18 +453,8 @@ public class ModelManagerFragment extends BaseFragment {
         File destinationFile = new File(modelDir, fileName);
         String destinationPath = destinationFile.getAbsolutePath();
 
-        // Получаем токен Hugging Face из настроек
-        LocalAISettings settings = (LocalAISettings) new AISettings(UserConfig.selectedAccount).getServiceSettings(AISettings.AIServiceType.LOCAL_AI);
-        String token = settings.getHfToken();
-        if (token == null || token.isEmpty()) {
-            // fallback to static token if available
-            try {
-                token = tw.fdw.makrotagram.Extra.HUGGINGFACETOKEN;
-            } catch (Exception e) {
-                token = "";
-            }
-        }
-        final String finalToken = token;
+
+        final String finalToken = tw.fdw.makrotagram.Extra.HUGGINGFACETOKEN;
 
         // Запускаем загрузку в фоновом потоке, чтобы избежать блокировки UI
         new Thread(() -> {
