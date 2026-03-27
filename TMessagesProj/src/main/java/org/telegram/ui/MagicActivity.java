@@ -12,6 +12,7 @@ import android.view.animation.AccelerateDecelerateInterpolator;
 import android.view.animation.DecelerateInterpolator;
 import android.view.animation.OvershootInterpolator;
 import android.widget.FrameLayout;
+import android.widget.GridLayout;
 import android.widget.HorizontalScrollView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
@@ -94,11 +95,12 @@ public class MagicActivity extends BaseFragment {
             ));
             chip.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(8),
                     AndroidUtilities.dp(12), AndroidUtilities.dp(8));
+
             LinearLayout.LayoutParams chipParams = new LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.WRAP_CONTENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT
             );
-            chipParams.setMargins(0, 0, AndroidUtilities.dp(8), 0);
+            chipParams.setMargins(AndroidUtilities.dp(4), AndroidUtilities.dp(4), AndroidUtilities.dp(4), AndroidUtilities.dp(4));
             styleChipsContainer.addView(chip, chipParams);
 
             TextView chipText = new TextView(context);
@@ -253,13 +255,13 @@ public class MagicActivity extends BaseFragment {
         styleLabel.setPadding(0, 0, 0, AndroidUtilities.dp(8));
         styleContainer.addView(styleLabel, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
 
-        HorizontalScrollView scrollViewChips = new HorizontalScrollView(context);
-        scrollViewChips.setHorizontalScrollBarEnabled(false);
+        HorizontalScrollView chipsScrollView = new HorizontalScrollView(context);
+        chipsScrollView.setHorizontalScrollBarEnabled(false);
         styleChipsContainer = new LinearLayout(context);
         styleChipsContainer.setOrientation(LinearLayout.HORIZONTAL);
-        styleChipsContainer.setPadding(0, 0, 0, 0);
-        scrollViewChips.addView(styleChipsContainer, LayoutHelper.createScroll(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.LEFT | Gravity.CENTER_VERTICAL));
-        styleContainer.addView(scrollViewChips, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
+        styleChipsContainer.setPadding(AndroidUtilities.dp(4), AndroidUtilities.dp(4), AndroidUtilities.dp(4), AndroidUtilities.dp(4));
+        chipsScrollView.addView(styleChipsContainer, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT));
+        styleContainer.addView(chipsScrollView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
 
         // Заполняем chips
         createStyleChips(context);
