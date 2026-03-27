@@ -304,4 +304,124 @@ public class GeminiService extends BaseAIService {
         }
         callback.onError(errorMessage);
     }
+
+    @Override
+    protected void makeStreamingRequest(String systemPrompt, String history, String model, StreamCallback callback) {
+        // Пока что эмулируем стриминг, разбивая ответ на чанки
+        // В будущем можно реализовать настоящий стриминг через Gemini API с stream=true
+        String apiKey = getApiKey();
+        if (TextUtils.isEmpty(apiKey)) {
+            callback.onError("API ключ Gemini не установлен");
+            return;
+        }
+
+        GeminiSettings geminiSettings = (GeminiSettings) getServiceSettings();
+
+        try {
+            // Формируем URL с учетом выбранной модели
+            String url = API_URL + model + ":generateContent?key=" + apiKey;
+
+            JSONObject requestBody = new JSONObject();
+
+            JSONArray contents = new JSONArray();
+
+            // Объединяем системный промпт с историей
+            String fullPrompt = systemPrompt + "\n\n" + history;
+
+            JSONObject content = new JSONObject();
+            content.put("role", "user");
+
+            JSONArray parts = new JSONArray();
+            JSONObject part = new JSONObject();
+            part.put("text", fullPrompt);
+            parts.put(part);
+            content.put("parts", parts);
+
+            contents.put(content);
+            requestBody.put("contents", contents);
+
+            // Настройки генерации из настроек
+            JSONObject generationConfig = new JSONObject();
+            generationConfig.put("temperature", geminiSettings.getTemperature());
+            generationConfig.put("maxOutputTokens", geminiSettings.getMaxOutputTokens());
+            generationConfig.put("topP", geminiSettings.getTopP());
+            generationConfig.put("topK", geminiSettings.getTopK());
+            requestBody.put("generationConfig", generationConfig);
+
+            // Настройки безопасности из настроек
+            JSONArray safetySettings = new JSONArray();
+            Map<String, String> safetyMap = geminiSettings.getSafetySettings();
+            for (Map.Entry<String, String> entry : safetyMap.entrySet()) {
+                addSafetySetting(safetySettings, entry.getKey(), entry.getValue());
+            }
+            requestBody.put("safetySettings", safetySettings);
+
+            Request request = new Request.Builder()
+                    .url(url)
+                    .post(RequestBody.create(requestBody.toString(), JSON))
+                    .build();
+
+            new Thread(() -> {
+                try {
+                    Response response = client.newCall(request).execute();
+                    if (response.isSuccessful()) {
+                        String responseBody = response.body().string();
+                        JSONObject jsonResponse = new JSONObject(responseBody);
+
+                        // Парсим ответ Gemini
+                        String fullText = extractContentFromGeminiResponse(jsonResponse);
+
+                        // Эмуляция стриминга: разбиваем текст на чанки по 10 символов
+                        int chunkSize = 10;
+                        for (int i = 0; i < fullText.length(); i += chunkSize) {
+                            int end = Math.min(fullText.length(), i + chunkSize);
+                            String chunk = fullText.substring(i, end);
+                            callback.onChunk(chunk);
+                            // Небольшая задержка для имитации реального стриминга
+                            Thread.sleep(50);
+                        }
+                        callback.onComplete();
+                    } else {
+                        handleStreamingErrorResponse(response, callback);
+                    }
+                } catch (Exception e) {
+                    FileLog.e("Gemini streaming request error: " + e.getMessage());
+                    callback.onError("Ошибка сети: " + e.getMessage());
+                }
+            }).start();
+
+        } catch (Exception e) {
+            FileLog.e("Error creating Gemini streaming request: " + e.getMessage());
+            callback.onError("Ошибка при создании запроса: " + e.getMessage());
+        }
+    }
+
+    private void handleStreamingErrorResponse(Response response, StreamCallback callback) throws IOException {
+        String errorBody = response.body() != null ? response.body().string() : "";
+        FileLog.e("Gemini API error (streaming): " + response.code() + " - " + errorBody);
+
+        String errorMessage;
+        if (response.code() == 400) {
+            try {
+                JSONObject error = new JSONObject(errorBody);
+                if (error.has("error")) {
+                    JSONObject errorObj = error.getJSONObject("error");
+                    errorMessage = "Ошибка Gemini: " + errorObj.optString("message", "Неверный запрос");
+                } else {
+                    errorMessage = "Неверный запрос к Gemini API";
+                }
+            } catch (Exception e) {
+                errorMessage = "Неверный запрос к Gemini API";
+            }
+        } else if (response.code() == 403) {
+            errorMessage = "Неверный API ключ Gemini";
+        } else if (response.code() == 429) {
+            errorMessage = "Превышен лимит запросов Gemini";
+        } else if (response.code() == 404) {
+            errorMessage = "Модель не найдена или недоступна в вашем регионе";
+        } else {
+            errorMessage = "Ошибка Gemini API: " + response.code();
+        }
+        callback.onError(errorMessage);
+    }
 }

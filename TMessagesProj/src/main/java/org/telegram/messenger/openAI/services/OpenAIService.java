@@ -133,6 +133,125 @@ public class OpenAIService extends BaseAIService {
         }
     }
 
+    @Override
+    protected void makeStreamingRequest(String systemPrompt, String history, String model, StreamCallback callback) {
+        String apiKey = getApiKey();
+        if (TextUtils.isEmpty(apiKey)) {
+            callback.onError("API ключ OpenAI не установлен");
+            return;
+        }
+
+        OpenAISettings openAISettings = (OpenAISettings) getServiceSettings();
+
+        try {
+            JSONObject requestBody = new JSONObject();
+            requestBody.put("model", model);
+            requestBody.put("temperature", openAISettings.getTemperature());
+            requestBody.put("max_tokens", openAISettings.getMaxTokens());
+            requestBody.put("top_p", openAISettings.getTopP());
+            requestBody.put("frequency_penalty", openAISettings.getFrequencyPenalty());
+            requestBody.put("presence_penalty", openAISettings.getPresencePenalty());
+            requestBody.put("stream", true); // Включаем стриминг
+
+            JSONArray messages = new JSONArray();
+
+            JSONObject systemMessage = new JSONObject();
+            systemMessage.put("role", "system");
+            systemMessage.put("content", systemPrompt);
+            messages.put(systemMessage);
+
+            JSONObject userMessage = new JSONObject();
+            userMessage.put("role", "user");
+            userMessage.put("content", history);
+            messages.put(userMessage);
+
+            requestBody.put("messages", messages);
+
+            Request request = new Request.Builder()
+                    .url(API_URL)
+                    .header("Authorization", "Bearer " + apiKey)
+                    .header("Accept", "text/event-stream")
+                    .post(RequestBody.create(requestBody.toString(), JSON))
+                    .build();
+
+            new Thread(() -> {
+                try {
+                    Response response = client.newCall(request).execute();
+                    if (!response.isSuccessful()) {
+                        handleErrorResponse(response, new Callback() {
+                            @Override
+                            public void onSuccess(JSONObject response) {}
+                            @Override
+                            public void onError(String error) {
+                                callback.onError(error);
+                            }
+                        });
+                        return;
+                    }
+
+                    // Парсим SSE поток
+                    String responseBody = response.body().string();
+                    // Упрощённая обработка: разбиваем на строки и эмулируем чанки
+                    // В реальности нужно парсить события "data: {...}"
+                    // Для простоты отправим весь ответ одним чанком
+                    // TODO: реализовать настоящий парсинг SSE
+                    String fullResponse = extractContentFromStream(responseBody);
+                    if (fullResponse != null && !fullResponse.isEmpty()) {
+                        // Эмуляция посимвольного вывода
+                        int chunkSize = 10;
+                        for (int i = 0; i < fullResponse.length(); i += chunkSize) {
+                            int end = Math.min(fullResponse.length(), i + chunkSize);
+                            String chunk = fullResponse.substring(i, end);
+                            callback.onChunk(chunk);
+                            try {
+                                Thread.sleep(50); // небольшая задержка для эффекта стриминга
+                            } catch (InterruptedException e) {
+                                Thread.currentThread().interrupt();
+                            }
+                        }
+                        callback.onComplete();
+                    } else {
+                        callback.onError("Пустой ответ от API");
+                    }
+                } catch (Exception e) {
+                    FileLog.e("OpenAI streaming request error: " + e.getMessage());
+                    callback.onError("Ошибка сети: " + e.getMessage());
+                }
+            }).start();
+
+        } catch (Exception e) {
+            FileLog.e("Error creating OpenAI streaming request: " + e.getMessage());
+            callback.onError("Ошибка при создании запроса: " + e.getMessage());
+        }
+    }
+
+    private String extractContentFromStream(String streamData) {
+        // Упрощённая реализация: ищем поле "content" в JSON объектах
+        StringBuilder content = new StringBuilder();
+        String[] lines = streamData.split("\n");
+        for (String line : lines) {
+            if (line.startsWith("data: ")) {
+                String jsonStr = line.substring(6).trim();
+                if (jsonStr.equals("[DONE]")) {
+                    continue;
+                }
+                try {
+                    JSONObject json = new JSONObject(jsonStr);
+                    JSONArray choices = json.optJSONArray("choices");
+                    if (choices != null && choices.length() > 0) {
+                        JSONObject choice = choices.getJSONObject(0);
+                        JSONObject delta = choice.optJSONObject("delta");
+                        if (delta != null && delta.has("content")) {
+                            content.append(delta.getString("content"));
+                        }
+                    }
+                } catch (Exception e) {
+                    // игнорируем некорректные JSON
+                }
+            }
+        }
+        return content.toString();
+    }
 
     @Override
     public String getServiceName() {

@@ -13,6 +13,8 @@ import org.telegram.messenger.openAI.UserPromptService;
 import org.telegram.messenger.openAI.AIStyleService;
 import org.telegram.messenger.openAI.models.AIStyle;
 import org.telegram.tgnet.TLRPC;
+
+import java.util.List;
 import java.util.Locale;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -54,6 +56,9 @@ public abstract class BaseAIService {
                     "  \"suggestion\": \"text of the response\"\n" +
                     "}\n\n" +
                     "The response must be only JSON.";
+
+    protected static final String ANALYSIS_SYSTEM_PROMPT =
+            "You are an AI assistant that analyzes chat conversations. Your task is to answer the user's question about the provided chat history. Use the conversation history to provide accurate, insightful, and helpful answers. Respond in a natural, conversational tone, in the same language as the chat or the user's question. Do not output JSON, just plain text.";
 
     protected int currentAccount;
     protected AISettings aiSettings;
@@ -157,6 +162,17 @@ public abstract class BaseAIService {
         void onError(String error);
     }
 
+    public interface StreamCallback {
+        void onChunk(String chunk);
+        void onComplete();
+        void onError(String error);
+    }
+
+    public interface AnalysisCallback {
+        void onAnalysisResult(String result);
+        void onError(String error);
+    }
+
     // Модель для представления доступной модели AI
     public static class AIModel {
         public final String id;
@@ -177,6 +193,19 @@ public abstract class BaseAIService {
         }
     }
 
+    // Сообщение в истории диалога (для контекстного анализа)
+    public static class ChatMessage {
+        public final String role; // "user" или "assistant"
+        public final String content;
+        public final long timestamp;
+
+        public ChatMessage(String role, String content) {
+            this.role = role;
+            this.content = content;
+            this.timestamp = System.currentTimeMillis();
+        }
+    }
+
     public BaseAIService(int account) {
         this.currentAccount = account;
         this.aiSettings = new AISettings(account);
@@ -188,6 +217,15 @@ public abstract class BaseAIService {
 
     // Абстрактные методы, которые должны реализовать конкретные сервисы
     protected abstract void makeRequest(String systemPrompt, String history, String model, Callback callback);
+
+    /**
+     * Выполняет потоковый запрос к AI сервису.
+     * @param systemPrompt системный промпт
+     * @param history история диалога
+     * @param model модель
+     * @param callback колбэк для получения чанков
+     */
+    protected abstract void makeStreamingRequest(String systemPrompt, String history, String model, StreamCallback callback);
 
     public abstract String getServiceName();
 
@@ -355,6 +393,98 @@ public abstract class BaseAIService {
         generateSingleResponse(messages, null, null, callback);
     }
 
+    /**
+     * Анализирует диалог с заданным пользовательским вопросом.
+     * Поддерживает стриминг ответа через AnalysisCallback.
+     * @param messages история сообщений
+     * @param userQuestion вопрос пользователя (например, "Что обсуждали?")
+     * @param styleId идентификатор стиля (опционально)
+     * @param callback колбэк для получения результата анализа
+     */
+    public void analyzeConversation(ArrayList<MessageObject> messages, String userQuestion, String styleId, AnalysisCallback callback) {
+        if (!hasValidConfig()) {
+            callback.onError(getServiceName() + " is not configured. Please check settings.");
+            return;
+        }
+
+        try {
+            String modelId = getModel();
+            AIModel model = getModelById(modelId);
+            if (model == null) {
+                model = getModelById(getDefaultModelId());
+            }
+
+            long interlocutorId = getInterlocutorId(messages);
+            // Используем ANALYSIS_SYSTEM_PROMPT как базовый системный промпт
+            StringBuilder systemPrompt = new StringBuilder(ANALYSIS_SYSTEM_PROMPT);
+
+            // Добавляем пользовательские промпты, если есть
+            String custom = aiSettings.getSystemPrompt();
+            if (custom != null && !custom.isEmpty()) {
+                systemPrompt.append("\n\n").append("=== BASE USER PROMPT ===\n").append(custom);
+            }
+
+            UserPromptService promptService = UserPromptService.getInstance(currentAccount);
+            String myPrompt = promptService.getCurrentUserPrompt();
+            if (!TextUtils.isEmpty(myPrompt)) {
+                systemPrompt.append("\n\n").append("=== MY PROMPT ===\n").append(myPrompt);
+            }
+            if (interlocutorId > 0) {
+                String interlocutorPrompt = promptService.getPrompt(interlocutorId);
+                if (!TextUtils.isEmpty(interlocutorPrompt)) {
+                    systemPrompt.append("\n\n").append("=== INTERLOCUTOR PROMPT ===\n").append(interlocutorPrompt);
+                }
+            }
+
+            // Добавляем стиль, если указан
+            if (styleId != null) {
+                AIStyle style = AIStyleService.getInstance().getStyleById(styleId);
+                if (style != null && !TextUtils.isEmpty(style.getPrompt())) {
+                    systemPrompt.append("\n\n").append("=== STYLE: ").append(style.getName()).append(" ===\n").append(style.getPrompt());
+                }
+            }
+
+            // Формируем историю диалога с вопросом пользователя
+            String conversationHistory = buildAnalysisConversationHistory(messages, userQuestion, interlocutorId);
+
+            // Адаптер StreamCallback -> AnalysisCallback
+            StreamCallback streamAdapter = new StreamCallback() {
+                private final StringBuilder accumulated = new StringBuilder();
+
+                @Override
+                public void onChunk(String chunk) {
+                    accumulated.append(chunk);
+                    // Можно передавать чанки в реальном времени, но AnalysisCallback не поддерживает чанки.
+                    // Для простоты просто накапливаем.
+                }
+
+                @Override
+                public void onComplete() {
+                    callback.onAnalysisResult(accumulated.toString());
+                }
+
+                @Override
+                public void onError(String error) {
+                    callback.onError(error);
+                }
+            };
+
+            // Выполняем потоковый запрос
+            makeStreamingRequest(systemPrompt.toString(), conversationHistory, model.id, streamAdapter);
+
+        } catch (Exception e) {
+            FileLog.e("Error creating analysis request: " + e.getMessage());
+            callback.onError("Error creating request: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Анализирует диалог без указания стиля.
+     */
+    public void analyzeConversation(ArrayList<MessageObject> messages, String userQuestion, AnalysisCallback callback) {
+        analyzeConversation(messages, userQuestion, null, callback);
+    }
+
     // Формирование истории переписки (без дублирования промптов)
     protected String buildConversationHistory(ArrayList<MessageObject> messages, String userPrompt, long interlocutorId) {
         StringBuilder history = new StringBuilder();
@@ -515,6 +645,150 @@ public abstract class BaseAIService {
         history.append("WRITE A SINGLE RESPONSE ON BEHALF OF ").append(interlocutorName).append("\n");
         history.append("MUST use 'I', 'me', 'my' (first person)\n");
         history.append("RESPONSE ONLY IN JSON FORMAT with a single 'suggestion' field\n");
+
+        return history.toString();
+    }
+
+    /**
+     * Формирует историю диалога для анализа с пользовательским вопросом.
+     */
+    protected String buildAnalysisConversationHistory(ArrayList<MessageObject> messages, String userQuestion, long interlocutorId) {
+        StringBuilder history = new StringBuilder();
+
+        long currentUserId = UserConfig.getInstance(currentAccount).getClientUserId();
+
+        TLRPC.User currentUser = UserConfig.getInstance(currentAccount).getCurrentUser();
+        String myName = currentUser != null ? getDisplayName(currentUser) : "Me (bot)";
+
+        String interlocutorName = "INTERLOCUTOR";
+        if (interlocutorId > 0) {
+            TLRPC.User interlocutor = MessagesController.getInstance(currentAccount).getUser(interlocutorId);
+            if (interlocutor != null) {
+                interlocutorName = getDisplayName(interlocutor);
+            }
+        }
+
+        // Добавляем вопрос пользователя
+        if (!TextUtils.isEmpty(userQuestion)) {
+            history.append("USER QUESTION: ").append(userQuestion).append("\n\n");
+        }
+
+        // Информация о чате
+        history.append("========== CHAT INFO ==========\n");
+        history.append("Me (bot): ").append(myName).append("\n");
+        history.append("Interlocutor: ").append(interlocutorName).append("\n");
+        Locale currentLocale = LocaleController.getInstance().getCurrentLocale();
+        String appLanguage = currentLocale.getDisplayLanguage(Locale.ENGLISH);
+        history.append("APP LANGUAGE: ").append(appLanguage).append("\n");
+
+        // Тип чата
+        boolean isGroupChat = isGroupChat(messages);
+        if (isGroupChat) {
+            history.append("CHAT TYPE: Group\n");
+            addGroupParticipants(history, messages);
+        } else {
+            history.append("CHAT TYPE: Private\n");
+        }
+
+        // История сообщений
+        history.append("\n========== CONVERSATION HISTORY ==========\n");
+        history.append("(Messages from oldest to newest)\n\n");
+
+        for (int i = 0; i < messages.size(); i++) {
+            MessageObject msg = messages.get(i);
+            String sender = getSenderName(msg, currentUserId, myName, interlocutorName, interlocutorId);
+            String text = getMessageText(msg);
+
+            if (i == messages.size() - 1) {
+                history.append("[LAST] ");
+            } else if (i == messages.size() - 2) {
+                history.append("[SECOND LAST] ");
+            }
+
+            history.append(sender).append(": ").append(text).append("\n");
+        }
+
+        history.append("\n========== ANALYSIS REQUEST ==========\n");
+        history.append("Please analyze the conversation above and answer the user's question.\n");
+        history.append("Provide a detailed, insightful response in natural language.\n");
+        history.append("Do not output JSON, just plain text.\n");
+
+        return history.toString();
+    }
+
+    /**
+     * Формирует историю диалога для анализа с пользовательским вопросом и историей чата (предыдущие вопросы-ответы).
+     */
+    protected String buildAnalysisConversationHistory(ArrayList<MessageObject> messages, String userQuestion,
+                                                      long interlocutorId, List<ChatMessage> chatHistory) {
+        StringBuilder history = new StringBuilder();
+
+        long currentUserId = UserConfig.getInstance(currentAccount).getClientUserId();
+
+        TLRPC.User currentUser = UserConfig.getInstance(currentAccount).getCurrentUser();
+        String myName = currentUser != null ? getDisplayName(currentUser) : "Me (bot)";
+
+        String interlocutorName = "INTERLOCUTOR";
+        if (interlocutorId > 0) {
+            TLRPC.User interlocutor = MessagesController.getInstance(currentAccount).getUser(interlocutorId);
+            if (interlocutor != null) {
+                interlocutorName = getDisplayName(interlocutor);
+            }
+        }
+
+        // Добавляем вопрос пользователя
+        if (!TextUtils.isEmpty(userQuestion)) {
+            history.append("USER QUESTION: ").append(userQuestion).append("\n\n");
+        }
+
+        // Информация о чате
+        history.append("========== CHAT INFO ==========\n");
+        history.append("Me (bot): ").append(myName).append("\n");
+        history.append("Interlocutor: ").append(interlocutorName).append("\n");
+        Locale currentLocale = LocaleController.getInstance().getCurrentLocale();
+        String appLanguage = currentLocale.getDisplayLanguage(Locale.ENGLISH);
+        history.append("APP LANGUAGE: ").append(appLanguage).append("\n");
+
+        // Тип чата
+        boolean isGroupChat = isGroupChat(messages);
+        if (isGroupChat) {
+            history.append("CHAT TYPE: Group\n");
+            addGroupParticipants(history, messages);
+        } else {
+            history.append("CHAT TYPE: Private\n");
+        }
+
+        // История сообщений
+        history.append("\n========== CONVERSATION HISTORY ==========\n");
+        history.append("(Messages from oldest to newest)\n\n");
+
+        for (int i = 0; i < messages.size(); i++) {
+            MessageObject msg = messages.get(i);
+            String sender = getSenderName(msg, currentUserId, myName, interlocutorName, interlocutorId);
+            String text = getMessageText(msg);
+
+            if (i == messages.size() - 1) {
+                history.append("[LAST] ");
+            } else if (i == messages.size() - 2) {
+                history.append("[SECOND LAST] ");
+            }
+
+            history.append(sender).append(": ").append(text).append("\n");
+        }
+
+        // Добавляем историю чата (предыдущие вопросы-ответы)
+        if (chatHistory != null && !chatHistory.isEmpty()) {
+            history.append("\n========== PREVIOUS ANALYSIS DIALOGUE ==========\n");
+            history.append("(Previous questions and answers in this session)\n\n");
+            for (ChatMessage chatMsg : chatHistory) {
+                history.append(chatMsg.role.toUpperCase()).append(": ").append(chatMsg.content).append("\n");
+            }
+        }
+
+        history.append("\n========== ANALYSIS REQUEST ==========\n");
+        history.append("Please analyze the conversation above and answer the user's question.\n");
+        history.append("Provide a detailed, insightful response in natural language.\n");
+        history.append("Do not output JSON, just plain text.\n");
 
         return history.toString();
     }
@@ -837,6 +1111,127 @@ public abstract class BaseAIService {
         } catch (Exception e) {
             FileLog.e("Error parsing JSON: " + e.getMessage());
             return null;
+        }
+    }
+
+    /**
+     * Анализирует диалог с поддержкой стриминга в реальном времени.
+     * @param messages история сообщений
+     * @param userQuestion вопрос пользователя
+     * @param styleId идентификатор стиля (опционально)
+     * @param callback колбэк для получения чанков
+     */
+    public void analyzeConversationStreaming(ArrayList<MessageObject> messages, String userQuestion, String styleId, StreamCallback callback) {
+        if (!hasValidConfig()) {
+            callback.onError(getServiceName() + " is not configured. Please check settings.");
+            return;
+        }
+
+        try {
+            String modelId = getModel();
+            AIModel model = getModelById(modelId);
+            if (model == null) {
+                model = getModelById(getDefaultModelId());
+            }
+
+            long interlocutorId = getInterlocutorId(messages);
+            StringBuilder systemPrompt = new StringBuilder(ANALYSIS_SYSTEM_PROMPT);
+
+            String custom = aiSettings.getSystemPrompt();
+            if (custom != null && !custom.isEmpty()) {
+                systemPrompt.append("\n\n").append("=== BASE USER PROMPT ===\n").append(custom);
+            }
+
+            UserPromptService promptService = UserPromptService.getInstance(currentAccount);
+            String myPrompt = promptService.getCurrentUserPrompt();
+            if (!TextUtils.isEmpty(myPrompt)) {
+                systemPrompt.append("\n\n").append("=== MY PROMPT ===\n").append(myPrompt);
+            }
+            if (interlocutorId > 0) {
+                String interlocutorPrompt = promptService.getPrompt(interlocutorId);
+                if (!TextUtils.isEmpty(interlocutorPrompt)) {
+                    systemPrompt.append("\n\n").append("=== INTERLOCUTOR PROMPT ===\n").append(interlocutorPrompt);
+                }
+            }
+
+            if (styleId != null) {
+                AIStyle style = AIStyleService.getInstance().getStyleById(styleId);
+                if (style != null && !TextUtils.isEmpty(style.getPrompt())) {
+                    systemPrompt.append("\n\n").append("=== STYLE: ").append(style.getName()).append(" ===\n").append(style.getPrompt());
+                }
+            }
+
+            String conversationHistory = buildAnalysisConversationHistory(messages, userQuestion, interlocutorId);
+            makeStreamingRequest(systemPrompt.toString(), conversationHistory, model.id, callback);
+
+        } catch (Exception e) {
+            FileLog.e("Error creating analysis streaming request: " + e.getMessage());
+            callback.onError("Error creating request: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Анализирует диалог без указания стиля.
+     */
+    public void analyzeConversationStreaming(ArrayList<MessageObject> messages, String userQuestion, StreamCallback callback) {
+        analyzeConversationStreaming(messages, userQuestion, null, callback);
+    }
+
+    /**
+     * Анализирует диалог с поддержкой стриминга и контекстной историей чата.
+     * @param messages история сообщений
+     * @param userQuestion вопрос пользователя
+     * @param styleId идентификатор стиля (опционально)
+     * @param chatHistory история предыдущих вопросов и ответов в этой сессии
+     * @param callback колбэк для получения чанков
+     */
+    public void analyzeConversationStreaming(ArrayList<MessageObject> messages, String userQuestion, String styleId,
+                                             List<ChatMessage> chatHistory, StreamCallback callback) {
+        if (!hasValidConfig()) {
+            callback.onError(getServiceName() + " is not configured. Please check settings.");
+            return;
+        }
+
+        try {
+            String modelId = getModel();
+            AIModel model = getModelById(modelId);
+            if (model == null) {
+                model = getModelById(getDefaultModelId());
+            }
+
+            long interlocutorId = getInterlocutorId(messages);
+            StringBuilder systemPrompt = new StringBuilder(ANALYSIS_SYSTEM_PROMPT);
+
+            String custom = aiSettings.getSystemPrompt();
+            if (custom != null && !custom.isEmpty()) {
+                systemPrompt.append("\n\n").append("=== BASE USER PROMPT ===\n").append(custom);
+            }
+
+            UserPromptService promptService = UserPromptService.getInstance(currentAccount);
+            String myPrompt = promptService.getCurrentUserPrompt();
+            if (!TextUtils.isEmpty(myPrompt)) {
+                systemPrompt.append("\n\n").append("=== MY PROMPT ===\n").append(myPrompt);
+            }
+            if (interlocutorId > 0) {
+                String interlocutorPrompt = promptService.getPrompt(interlocutorId);
+                if (!TextUtils.isEmpty(interlocutorPrompt)) {
+                    systemPrompt.append("\n\n").append("=== INTERLOCUTOR PROMPT ===\n").append(interlocutorPrompt);
+                }
+            }
+
+            if (styleId != null) {
+                AIStyle style = AIStyleService.getInstance().getStyleById(styleId);
+                if (style != null && !TextUtils.isEmpty(style.getPrompt())) {
+                    systemPrompt.append("\n\n").append("=== STYLE: ").append(style.getName()).append(" ===\n").append(style.getPrompt());
+                }
+            }
+
+            String conversationHistory = buildAnalysisConversationHistory(messages, userQuestion, interlocutorId, chatHistory);
+            makeStreamingRequest(systemPrompt.toString(), conversationHistory, model.id, callback);
+
+        } catch (Exception e) {
+            FileLog.e("Error creating analysis streaming request with chat history: " + e.getMessage());
+            callback.onError("Error creating request: " + e.getMessage());
         }
     }
 }

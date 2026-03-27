@@ -129,6 +129,78 @@ public class LocalAIService extends BaseAIService {
         }).start();
     }
 
+    @Override
+    protected void makeStreamingRequest(String systemPrompt, String history, String modelId, StreamCallback callback) {
+        // Получаем настройки Local AI
+        LocalAISettings settings = (LocalAISettings) getServiceSettings();
+        if (!settings.validate()) {
+            callback.onError("Настройки Local AI не заполнены. Укажите путь к модели или скачайте модель.");
+            return;
+        }
+
+        // Получаем путь к модели из настроек
+        String modelPath = settings.getModelPath();
+        if (TextUtils.isEmpty(modelPath)) {
+            callback.onError("Путь к модели не указан. Выберите или скачайте модель в настройках.");
+            return;
+        }
+        File modelFile = new File(modelPath);
+        if (!modelFile.exists()) {
+            callback.onError("Файл модели не найден: " + modelPath);
+            return;
+        }
+
+        // Создаём конфигурацию инференса из настроек
+        InferenceConfig config = new InferenceConfig.Builder()
+                .setNThreads(settings.getThreads())
+                .setNPredict(settings.getMaxTokens())
+                .setTopK(settings.getTopK())
+                .setTopP(settings.getTopP())
+                .setTemperature(settings.getTemperature())
+                .setRepeatPenalty(settings.getRepeatPenalty())
+                .setAccelerator(settings.getAccelerator())
+                // Остальные параметры оставляем по умолчанию
+                .build();
+
+        // Инициализируем движок, если ещё не загружен
+        if (!inferenceEngine.isLoaded() || !modelPath.equals(inferenceEngine.getModelPath())) {
+            boolean initSuccess = inferenceEngine.init(modelPath, config);
+            if (!initSuccess) {
+                callback.onError("Не удалось инициализировать движок инференса для модели: " + modelPath);
+                return;
+            }
+        }
+
+        // Объединяем системный промпт и историю в один промпт для модели
+        String fullPrompt = systemPrompt + "\n\n" + history;
+
+        // Выполняем инференс в фоновом потоке
+        new Thread(() -> {
+            try {
+                InferenceResult result = inferenceEngine.infer(fullPrompt, config);
+                if (result.isSuccess()) {
+                    String generatedText = result.getGeneratedText();
+                    // Для анализа диалога ожидаем plain text, а не JSON
+                    // Эмуляция стриминга: разбиваем текст на чанки по 10 символов
+                    int chunkSize = 10;
+                    for (int i = 0; i < generatedText.length(); i += chunkSize) {
+                        int end = Math.min(generatedText.length(), i + chunkSize);
+                        String chunk = generatedText.substring(i, end);
+                        callback.onChunk(chunk);
+                        // Небольшая задержка для имитации реального стриминга
+                        Thread.sleep(50);
+                    }
+                    callback.onComplete();
+                } else {
+                    callback.onError("Ошибка инференса: " + result.getErrorMessage());
+                }
+            } catch (Exception e) {
+                FileLog.e(TAG + " Local AI streaming inference error", e);
+                callback.onError("Исключение при инференсе: " + e.getMessage());
+            }
+        }).start();
+    }
+
     private JSONObject createFallbackResponse(String text) {
         try {
             JSONArray suggestions = new JSONArray();

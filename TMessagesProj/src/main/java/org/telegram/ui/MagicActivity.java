@@ -64,11 +64,19 @@ public class MagicActivity extends BaseFragment {
     private FrameLayout generateButton;
     private boolean userRequestedGeneration = false;
 
+    // Новые поля для анализа диалога
+    private android.widget.EditText userQuestionEditText;
+    private TextView analysisResultTextView;
+    private LinearLayout analysisContainer;
+    private FrameLayout analyzeButton;
+    private java.util.List<BaseAIService.ChatMessage> chatHistory;
+
     public MagicActivity() {
         super();
         selectedMessages = new ArrayList<>();
         promptText = "";
         aiSettings = new AISettings();
+        chatHistory = new java.util.ArrayList<>();
         updateService();
     }
 
@@ -265,6 +273,86 @@ public class MagicActivity extends BaseFragment {
 
         // Заполняем chips
         createStyleChips(context);
+
+        // Раздел анализа диалога
+        analysisContainer = new LinearLayout(context);
+        analysisContainer.setOrientation(LinearLayout.VERTICAL);
+        analysisContainer.setPadding(AndroidUtilities.dp(20), AndroidUtilities.dp(20), AndroidUtilities.dp(20), AndroidUtilities.dp(20));
+        analysisContainer.setBackgroundDrawable(Theme.createRoundRectDrawable(
+                AndroidUtilities.dp(16),
+                Theme.getColor(Theme.key_windowBackgroundWhite)
+        ));
+        LinearLayout.LayoutParams analysisParams = LayoutHelper.createLinear(
+                LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT,
+                Gravity.CENTER, 20, 15, 20, 15
+        );
+        contentLayout.addView(analysisContainer, analysisParams);
+
+        TextView analysisLabel = new TextView(context);
+        analysisLabel.setText("Анализ диалога");
+        analysisLabel.setTextSize(16);
+        analysisLabel.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
+        analysisLabel.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"));
+        analysisLabel.setPadding(0, 0, 0, AndroidUtilities.dp(12));
+        analysisContainer.addView(analysisLabel, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
+
+        userQuestionEditText = new android.widget.EditText(context);
+        userQuestionEditText.setHint("Задайте вопрос о диалоге...");
+        userQuestionEditText.setTextSize(14);
+        userQuestionEditText.setHintTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText));
+        userQuestionEditText.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
+        userQuestionEditText.setBackgroundDrawable(Theme.createRoundRectDrawable(
+                AndroidUtilities.dp(10),
+                Theme.getColor(Theme.key_windowBackgroundGray)
+        ));
+        userQuestionEditText.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(12), AndroidUtilities.dp(12), AndroidUtilities.dp(12));
+        userQuestionEditText.setSingleLine(false);
+        userQuestionEditText.setMaxLines(3);
+        analysisContainer.addView(userQuestionEditText, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 12));
+
+        analyzeButton = new FrameLayout(context);
+        analyzeButton.setBackgroundDrawable(Theme.createRoundRectDrawable(
+                AndroidUtilities.dp(10),
+                Theme.getColor(Theme.key_featuredStickers_addButton)
+        ));
+        analyzeButton.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(12),
+                AndroidUtilities.dp(16), AndroidUtilities.dp(12));
+        LinearLayout.LayoutParams analyzeButtonParams = LayoutHelper.createLinear(
+                LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT,
+                Gravity.CENTER
+        );
+        analysisContainer.addView(analyzeButton, analyzeButtonParams);
+
+        LinearLayout analyzeButtonContent = new LinearLayout(context);
+        analyzeButtonContent.setOrientation(LinearLayout.HORIZONTAL);
+        analyzeButtonContent.setGravity(Gravity.CENTER);
+
+        TextView analyzeIcon = new TextView(context);
+        analyzeIcon.setText("🔍");
+        analyzeIcon.setTextSize(16);
+        analyzeButtonContent.addView(analyzeIcon, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT));
+
+        TextView analyzeText = new TextView(context);
+        analyzeText.setText("Анализировать диалог");
+        analyzeText.setTextSize(14);
+        analyzeText.setTextColor(Theme.getColor(Theme.key_featuredStickers_buttonText));
+        analyzeText.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"));
+        analyzeText.setPadding(AndroidUtilities.dp(6), 0, 0, 0);
+        analyzeButtonContent.addView(analyzeText, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT));
+
+        analyzeButton.addView(analyzeButtonContent, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER));
+
+        analyzeButton.setOnClickListener(v -> {
+            animateButtonPress(analyzeButton);
+            performAnalysis();
+        });
+
+        analysisResultTextView = new TextView(context);
+        analysisResultTextView.setTextSize(14);
+        analysisResultTextView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
+        analysisResultTextView.setPadding(0, AndroidUtilities.dp(16), 0, 0);
+        analysisResultTextView.setVisibility(View.GONE);
+        analysisContainer.addView(analysisResultTextView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
 
         // Кнопка генерации
         generateButton = new FrameLayout(context);
@@ -890,6 +978,83 @@ public class MagicActivity extends BaseFragment {
         
         isGenerating = false;
         hasGenerated = false;
+    }
+
+    private void performAnalysis() {
+        if (isGenerating) {
+            return;
+        }
+        String question = userQuestionEditText.getText().toString().trim();
+        if (question.isEmpty()) {
+            Toast.makeText(getParentActivity(), "Введите вопрос", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (!aiSettings.hasValidConfig()) {
+            Toast.makeText(getParentActivity(), "Настройте API ключ", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        // Добавляем вопрос в историю
+        chatHistory.add(new BaseAIService.ChatMessage("user", question));
+        // Очищаем поле ввода
+        AndroidUtilities.runOnUIThread(() -> userQuestionEditText.setText(""));
+
+        // Показываем прогресс
+        analysisResultTextView.setVisibility(View.VISIBLE);
+        analysisResultTextView.setText("Анализирую...");
+        analysisResultTextView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText));
+        analyzeButton.setEnabled(false);
+
+        isGenerating = true;
+
+        // Вызываем анализ с поддержкой стриминга и историей чата
+        aiService.analyzeConversationStreaming(selectedMessages, question, selectedStyleId, chatHistory, new BaseAIService.StreamCallback() {
+            private final StringBuilder accumulated = new StringBuilder();
+
+            @Override
+            public void onChunk(String chunk) {
+                AndroidUtilities.runOnUIThread(() -> {
+                    // Обновляем текст по мере поступления чанков
+                    if (accumulated.length() == 0 && analysisResultTextView.getText().toString().startsWith("Анализирую...")) {
+                        analysisResultTextView.setText(chunk);
+                    } else {
+                        accumulated.append(chunk);
+                        analysisResultTextView.setText(accumulated.toString());
+                    }
+                    analysisResultTextView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
+                    // Прокручиваем вниз
+                    if (analysisContainer != null && analysisContainer.getParent() != null) {
+                        View scrollView = (View) analysisContainer.getParent().getParent();
+                        if (scrollView instanceof ScrollView) {
+                            ((ScrollView) scrollView).fullScroll(View.FOCUS_DOWN);
+                        }
+                    }
+                });
+            }
+
+            @Override
+            public void onComplete() {
+                AndroidUtilities.runOnUIThread(() -> {
+                    // Добавляем ответ ассистента в историю
+                    String fullResponse = accumulated.toString();
+                    chatHistory.add(new BaseAIService.ChatMessage("assistant", fullResponse));
+                    analysisResultTextView.setText(fullResponse);
+                    analysisResultTextView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
+                    analyzeButton.setEnabled(true);
+                    isGenerating = false;
+                });
+            }
+
+            @Override
+            public void onError(String error) {
+                AndroidUtilities.runOnUIThread(() -> {
+                    analysisResultTextView.setText("Ошибка: " + error);
+                    analysisResultTextView.setTextColor(Theme.getColor(Theme.key_text_RedRegular));
+                    analyzeButton.setEnabled(true);
+                    isGenerating = false;
+                });
+            }
+        });
     }
 
     @Override
