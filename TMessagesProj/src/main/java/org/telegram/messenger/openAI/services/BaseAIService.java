@@ -62,6 +62,58 @@ public abstract class BaseAIService {
 
     protected int currentAccount;
     protected AISettings aiSettings;
+    private EngineLoadingListener engineLoadingListener;
+
+    /**
+     * Устанавливает слушатель загрузки движка (только для локальных сервисов).
+     */
+    public void setEngineLoadingListener(EngineLoadingListener listener) {
+        this.engineLoadingListener = listener;
+    }
+
+    /**
+     * Возвращает true, если движок в данный момент загружается.
+     * По умолчанию false. Переопределяется в LocalAIService.
+     */
+    public boolean isEngineLoading() {
+        return false;
+    }
+
+    /**
+     * Уведомляет слушателя о начале загрузки движка.
+     */
+    protected void notifyEngineLoadingStarted() {
+        if (engineLoadingListener != null) {
+            engineLoadingListener.onEngineLoadingStarted();
+        }
+    }
+
+    /**
+     * Уведомляет слушателя о прогрессе загрузки (0..1).
+     */
+    protected void notifyEngineLoadingProgress(float progress) {
+        if (engineLoadingListener != null) {
+            engineLoadingListener.onEngineLoadingProgress(progress);
+        }
+    }
+
+    /**
+     * Уведомляет слушателя об окончании загрузки движка.
+     */
+    protected void notifyEngineLoadingFinished() {
+        if (engineLoadingListener != null) {
+            engineLoadingListener.onEngineLoadingFinished();
+        }
+    }
+
+    /**
+     * Уведомляет слушателя об ошибке загрузки движка.
+     */
+    protected void notifyEngineLoadingError(String error) {
+        if (engineLoadingListener != null) {
+            engineLoadingListener.onEngineLoadingError(error);
+        }
+    }
 
     protected String getSystemPrompt() {
         String custom = aiSettings.getSystemPrompt();
@@ -171,6 +223,16 @@ public abstract class BaseAIService {
     public interface AnalysisCallback {
         void onAnalysisResult(String result);
         void onError(String error);
+    }
+
+    /**
+     * Интерфейс для отслеживания загрузки движка (актуально для локальных сервисов).
+     */
+    public interface EngineLoadingListener {
+        void onEngineLoadingStarted();
+        void onEngineLoadingProgress(float progress);
+        void onEngineLoadingFinished();
+        void onEngineLoadingError(String error);
     }
 
     // Модель для представления доступной модели AI

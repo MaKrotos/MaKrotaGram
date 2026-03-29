@@ -5,9 +5,13 @@ import android.animation.AnimatorListenerAdapter;
 import android.animation.ObjectAnimator;
 import android.animation.ValueAnimator;
 import android.content.Context;
+import android.content.res.ColorStateList;
+import android.graphics.drawable.GradientDrawable;
 import android.text.TextUtils;
+
 import android.view.Gravity;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.animation.AccelerateDecelerateInterpolator;
 import android.view.animation.DecelerateInterpolator;
 import android.view.animation.OvershootInterpolator;
@@ -18,6 +22,7 @@ import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
+
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -63,13 +68,20 @@ public class MagicActivity extends BaseFragment {
     private LinearLayout styleChipsContainer;
     private FrameLayout generateButton;
     private boolean userRequestedGeneration = false;
+    private boolean engineLoading = false;
+    private ValueAnimator engineProgressAnimator = null;
 
     // Новые поля для анализа диалога
     private android.widget.EditText userQuestionEditText;
-    private TextView analysisResultTextView;
+    private TextView analysisResultTextView; // сохраняем для обратной совместимости, но будем скрывать
     private LinearLayout analysisContainer;
     private FrameLayout analyzeButton;
     private java.util.List<BaseAIService.ChatMessage> chatHistory;
+    
+    // Поля для чат-интерфейса
+    private ScrollView chatScrollView;
+    private LinearLayout chatMessagesContainer;
+    private TextView currentBotMessageView; // текущее сообщение бота для потокового обновления
 
     public MagicActivity() {
         super();
@@ -84,6 +96,30 @@ public class MagicActivity extends BaseFragment {
         aiService = AIServiceFactory.createService(currentAccount);
         hasGenerated = false;
         loadSelectedStyleId();
+        // Устанавливаем слушатель загрузки движка (если сервис поддерживает)
+        if (aiService != null) {
+            aiService.setEngineLoadingListener(new BaseAIService.EngineLoadingListener() {
+                @Override
+                public void onEngineLoadingStarted() {
+                    setEngineLoading(true, "Загрузка движка...");
+                }
+
+                @Override
+                public void onEngineLoadingProgress(float progress) {
+                    updateEngineLoadingProgress(progress);
+                }
+
+                @Override
+                public void onEngineLoadingFinished() {
+                    setEngineLoading(false, null);
+                }
+
+                @Override
+                public void onEngineLoadingError(String error) {
+                    showEngineLoadingError(error);
+                }
+            });
+        }
     }
 
     private void loadSelectedStyleId() {
@@ -94,38 +130,99 @@ public class MagicActivity extends BaseFragment {
         styleChipsContainer.removeAllViews();
         List<AIStyle> styles = AIStyleService.getInstance().getAllStyles();
         for (AIStyle style : styles) {
-            FrameLayout chip = new FrameLayout(context);
-            chip.setBackgroundDrawable(Theme.createRoundRectDrawable(
-                    AndroidUtilities.dp(16),
-                    style.getId().equals(selectedStyleId) ?
-                            Theme.getColor(Theme.key_featuredStickers_addButton) :
-                            Theme.getColor(Theme.key_windowBackgroundWhite)
-            ));
-            chip.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(8),
-                    AndroidUtilities.dp(12), AndroidUtilities.dp(8));
-
-            LinearLayout.LayoutParams chipParams = new LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.WRAP_CONTENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT
-            );
-            chipParams.setMargins(AndroidUtilities.dp(4), AndroidUtilities.dp(4), AndroidUtilities.dp(4), AndroidUtilities.dp(4));
-            styleChipsContainer.addView(chip, chipParams);
-
-            TextView chipText = new TextView(context);
-            chipText.setText(style.getName());
-            chipText.setTextSize(14);
-            chipText.setTextColor(style.getId().equals(selectedStyleId) ?
-                    Theme.getColor(Theme.key_featuredStickers_buttonText) :
-                    Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
-            chipText.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"));
-            chip.addView(chipText, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER));
+            // Создаём кастомный TextView вместо Chip
+            TextView chip = new TextView(context);
+            chip.setText(style.getName());
+            chip.setTextSize(14);
+            chip.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"));
+            chip.setTag(style.getId()); // Сохраняем id стиля в теге
+            boolean selected = style.getId().equals(selectedStyleId);
+            // Начальные цвета
+            int backgroundColor = selected ? Theme.getColor(Theme.key_featuredStickers_addButton) : Theme.getColor(Theme.key_windowBackgroundWhite);
+            int textColor = selected ? Theme.getColor(Theme.key_featuredStickers_buttonText) : Theme.getColor(Theme.key_windowBackgroundWhiteBlackText);
+            int strokeColor = Theme.getColor(Theme.key_featuredStickers_addButton);
+            // Создаём фон с закруглёнными углами и обводкой
+            GradientDrawable background = new GradientDrawable();
+            background.setShape(GradientDrawable.RECTANGLE);
+            background.setCornerRadius(AndroidUtilities.dp(20));
+            background.setColor(backgroundColor);
+            background.setStroke(AndroidUtilities.dp(1), strokeColor);
+            chip.setBackground(background);
+            chip.setTextColor(textColor);
+            chip.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(8), AndroidUtilities.dp(12), AndroidUtilities.dp(8));
+            chip.setId(View.generateViewId());
+            // Добавляем margins между chips
+            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+            params.setMargins(0, 0, AndroidUtilities.dp(4), 0);
+            styleChipsContainer.addView(chip, params);
 
             chip.setOnClickListener(v -> {
+                // Анимация нажатия
+                v.animate()
+                        .scaleX(0.95f)
+                        .scaleY(0.95f)
+                        .setDuration(100)
+                        .withEndAction(() -> v.animate()
+                                .scaleX(1f)
+                                .scaleY(1f)
+                                .setDuration(100)
+                                .start())
+                        .start();
+
+                // Обновляем выбранный стиль
                 selectedStyleId = style.getId();
                 AIStyleService.getInstance().setSelectedStyleId(currentAccount, selectedStyleId);
-                createStyleChips(context); // перерисовываем chips
+                // Анимируем изменение цвета всех chips
+                updateChipColorsWithAnimation(styleChipsContainer, selectedStyleId);
             });
         }
+    }
+
+    private void updateChipColorsWithAnimation(ViewGroup chipContainer, String selectedStyleId) {
+        for (int i = 0; i < chipContainer.getChildCount(); i++) {
+            View child = chipContainer.getChildAt(i);
+            if (child instanceof TextView) {
+                TextView chip = (TextView) child;
+                String styleId = (String) chip.getTag();
+                boolean selected = styleId != null && styleId.equals(selectedStyleId);
+                int targetBackground = selected ? Theme.getColor(Theme.key_featuredStickers_addButton) : Theme.getColor(Theme.key_windowBackgroundWhite);
+                int targetText = selected ? Theme.getColor(Theme.key_featuredStickers_buttonText) : Theme.getColor(Theme.key_windowBackgroundWhiteBlackText);
+                // Анимация цвета
+                animateChipColor(chip, targetBackground, targetText);
+            }
+        }
+    }
+
+    private void animateChipColor(TextView chip, int targetBackgroundColor, int targetTextColor) {
+        GradientDrawable background = (GradientDrawable) chip.getBackground();
+        int startBackground = background.getColor() != null ? background.getColor().getDefaultColor() : Theme.getColor(Theme.key_windowBackgroundWhite);
+        int startText = chip.getTextColors().getDefaultColor();
+        ValueAnimator animator = ValueAnimator.ofFloat(0f, 1f);
+        animator.setDuration(200);
+        animator.addUpdateListener(animation -> {
+            float fraction = animation.getAnimatedFraction();
+            int bgColor = blendColors(startBackground, targetBackgroundColor, fraction);
+            int textColor = blendColors(startText, targetTextColor, fraction);
+            background.setColor(bgColor);
+            chip.setTextColor(textColor);
+        });
+        animator.start();
+    }
+
+    private int blendColors(int startColor, int endColor, float fraction) {
+        int startA = (startColor >> 24) & 0xff;
+        int startR = (startColor >> 16) & 0xff;
+        int startG = (startColor >> 8) & 0xff;
+        int startB = startColor & 0xff;
+        int endA = (endColor >> 24) & 0xff;
+        int endR = (endColor >> 16) & 0xff;
+        int endG = (endColor >> 8) & 0xff;
+        int endB = endColor & 0xff;
+        int a = (int) (startA + (endA - startA) * fraction);
+        int r = (int) (startR + (endR - startR) * fraction);
+        int g = (int) (startG + (endG - startG) * fraction);
+        int b = (int) (startB + (endB - startB) * fraction);
+        return (a << 24) | (r << 16) | (g << 8) | b;
     }
 
     public void setSelectedMessages(ArrayList<MessageObject> messages) {
@@ -252,8 +349,12 @@ public class MagicActivity extends BaseFragment {
         // Контейнер для выбора стилей (chips)
         LinearLayout styleContainer = new LinearLayout(context);
         styleContainer.setOrientation(LinearLayout.VERTICAL);
-        styleContainer.setPadding(AndroidUtilities.dp(20), AndroidUtilities.dp(10), AndroidUtilities.dp(20), AndroidUtilities.dp(10));
-        contentLayout.addView(styleContainer, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER, 20, 10, 20, 10));
+        styleContainer.setBackgroundDrawable(Theme.createRoundRectDrawable(
+                AndroidUtilities.dp(16),
+                Theme.getColor(Theme.key_windowBackgroundWhite)
+        ));
+        styleContainer.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(10), AndroidUtilities.dp(12), AndroidUtilities.dp(10));
+        contentLayout.addView(styleContainer, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER, 8, 10, 8, 10));
 
         TextView styleLabel = new TextView(context);
         styleLabel.setText("Стиль ответа:");
@@ -263,13 +364,13 @@ public class MagicActivity extends BaseFragment {
         styleLabel.setPadding(0, 0, 0, AndroidUtilities.dp(8));
         styleContainer.addView(styleLabel, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
 
-        HorizontalScrollView chipsScrollView = new HorizontalScrollView(context);
-        chipsScrollView.setHorizontalScrollBarEnabled(false);
+        HorizontalScrollView horizontalScrollView = new HorizontalScrollView(context);
+        horizontalScrollView.setHorizontalScrollBarEnabled(false);
         styleChipsContainer = new LinearLayout(context);
         styleChipsContainer.setOrientation(LinearLayout.HORIZONTAL);
         styleChipsContainer.setPadding(AndroidUtilities.dp(4), AndroidUtilities.dp(4), AndroidUtilities.dp(4), AndroidUtilities.dp(4));
-        chipsScrollView.addView(styleChipsContainer, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT));
-        styleContainer.addView(chipsScrollView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
+        horizontalScrollView.addView(styleChipsContainer, LayoutHelper.createScroll(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER_VERTICAL));
+        styleContainer.addView(horizontalScrollView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
 
         // Заполняем chips
         createStyleChips(context);
@@ -347,6 +448,25 @@ public class MagicActivity extends BaseFragment {
             performAnalysis();
         });
 
+        // Контейнер истории чата (заменяет analysisResultTextView)
+        chatScrollView = new ScrollView(context);
+        chatScrollView.setVerticalScrollBarEnabled(false);
+        chatScrollView.setFillViewport(true);
+        LinearLayout.LayoutParams scrollParams = LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT);
+        scrollParams.topMargin = AndroidUtilities.dp(16);
+        scrollParams.bottomMargin = AndroidUtilities.dp(8);
+        chatScrollView.setLayoutParams(scrollParams);
+        
+        chatMessagesContainer = new LinearLayout(context);
+        chatMessagesContainer.setOrientation(LinearLayout.VERTICAL);
+        chatMessagesContainer.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8));
+        chatScrollView.addView(chatMessagesContainer, new FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT
+        ));
+        analysisContainer.addView(chatScrollView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
+        
+        // Старый TextView оставляем скрытым для обратной совместимости
         analysisResultTextView = new TextView(context);
         analysisResultTextView.setTextSize(14);
         analysisResultTextView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
@@ -459,6 +579,237 @@ public class MagicActivity extends BaseFragment {
 
             serviceInfoView.setText("⚡ " + serviceName + " • " + modelName);
         }
+    }
+
+    /**
+     * Добавляет сообщение пользователя в историю чата (пузырёк справа).
+     */
+    private void addUserMessage(String text) {
+        if (chatMessagesContainer == null || getParentActivity() == null) return;
+        Context context = getParentActivity();
+        
+        FrameLayout messageLayout = new FrameLayout(context);
+        messageLayout.setLayoutParams(new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+        ));
+        messageLayout.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(4), AndroidUtilities.dp(8), AndroidUtilities.dp(4));
+        
+        LinearLayout bubbleLayout = new LinearLayout(context);
+        bubbleLayout.setOrientation(LinearLayout.VERTICAL);
+        bubbleLayout.setBackgroundDrawable(Theme.createRoundRectDrawable(
+                AndroidUtilities.dp(12),
+                Theme.getColor(Theme.key_chat_outBubble)
+        ));
+        bubbleLayout.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(10), AndroidUtilities.dp(12), AndroidUtilities.dp(10));
+        FrameLayout.LayoutParams bubbleParams = new FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT
+        );
+        bubbleParams.gravity = Gravity.END;
+        bubbleLayout.setLayoutParams(bubbleParams);
+        
+        TextView messageText = new TextView(context);
+        messageText.setText(text);
+        messageText.setTextSize(14);
+        messageText.setTextColor(Theme.getColor(Theme.key_chat_messageTextOut));
+        messageText.setLineSpacing(AndroidUtilities.dp(2), 1.0f);
+        bubbleLayout.addView(messageText, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT));
+        
+        messageLayout.addView(bubbleLayout);
+        chatMessagesContainer.addView(messageLayout);
+        
+        // Анимация появления
+        bubbleLayout.setAlpha(0f);
+        bubbleLayout.setScaleX(0.8f);
+        bubbleLayout.setScaleY(0.8f);
+        bubbleLayout.animate()
+                .alpha(1f)
+                .scaleX(1f)
+                .scaleY(1f)
+                .setDuration(200)
+                .setInterpolator(new OvershootInterpolator())
+                .start();
+        
+        scrollToBottom();
+    }
+
+    /**
+     * Добавляет сообщение бота в историю чата (пузырёк слева) и возвращает TextView для обновления текста.
+     */
+    private TextView addBotMessage(String initialText) {
+        if (chatMessagesContainer == null || getParentActivity() == null) return null;
+        Context context = getParentActivity();
+        
+        FrameLayout messageLayout = new FrameLayout(context);
+        messageLayout.setLayoutParams(new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+        ));
+        messageLayout.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(4), AndroidUtilities.dp(8), AndroidUtilities.dp(4));
+        
+        LinearLayout bubbleLayout = new LinearLayout(context);
+        bubbleLayout.setOrientation(LinearLayout.VERTICAL);
+        bubbleLayout.setBackgroundDrawable(Theme.createRoundRectDrawable(
+                AndroidUtilities.dp(12),
+                Theme.getColor(Theme.key_chat_inBubble)
+        ));
+        bubbleLayout.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(10), AndroidUtilities.dp(12), AndroidUtilities.dp(10));
+        FrameLayout.LayoutParams bubbleParams = new FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT
+        );
+        bubbleParams.gravity = Gravity.START;
+        bubbleLayout.setLayoutParams(bubbleParams);
+        
+        TextView messageText = new TextView(context);
+        messageText.setText(initialText);
+        messageText.setTextSize(14);
+        messageText.setTextColor(Theme.getColor(Theme.key_chat_messageTextIn));
+        messageText.setLineSpacing(AndroidUtilities.dp(2), 1.0f);
+        bubbleLayout.addView(messageText, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT));
+        
+        messageLayout.addView(bubbleLayout);
+        chatMessagesContainer.addView(messageLayout);
+        
+        // Анимация появления
+        bubbleLayout.setAlpha(0f);
+        bubbleLayout.setScaleX(0.8f);
+        bubbleLayout.setScaleY(0.8f);
+        bubbleLayout.animate()
+                .alpha(1f)
+                .scaleX(1f)
+                .scaleY(1f)
+                .setDuration(200)
+                .setInterpolator(new OvershootInterpolator())
+                .start();
+        
+        scrollToBottom();
+        return messageText;
+    }
+
+    /**
+     * Прокручивает контейнер чата вниз.
+     */
+    private void scrollToBottom() {
+        if (chatScrollView != null) {
+            chatScrollView.post(() -> {
+                chatScrollView.fullScroll(View.FOCUS_DOWN);
+            });
+        }
+    }
+
+    /**
+     * Устанавливает состояние загрузки движка и обновляет UI.
+     */
+    private void setEngineLoading(boolean loading, String message) {
+        if (engineLoading == loading && message == null) {
+            return;
+        }
+        engineLoading = loading;
+        AndroidUtilities.runOnUIThread(() -> {
+            if (loading) {
+                // Показываем прогресс-контейнер, если он скрыт
+                progressContainer.setVisibility(View.VISIBLE);
+                progressContainer.setAlpha(1f);
+                loadingTextView.setVisibility(View.VISIBLE);
+                loadingTextView.setText(message != null ? message : "Загрузка движка... 0%");
+                tokensProgressView.setVisibility(View.GONE);
+                // Запускаем анимацию прогресса (индетерминантную)
+                if (engineProgressAnimator != null) {
+                    engineProgressAnimator.cancel();
+                }
+                engineProgressAnimator = ValueAnimator.ofFloat(0f, 1f);
+                engineProgressAnimator.setDuration(2000);
+                engineProgressAnimator.setRepeatCount(ValueAnimator.INFINITE);
+                engineProgressAnimator.addUpdateListener(animation -> {
+                    float progress = (float) animation.getAnimatedValue();
+                    progressView.setProgress(progress);
+                });
+                engineProgressAnimator.start();
+            } else {
+                // Останавливаем анимацию
+                if (engineProgressAnimator != null) {
+                    engineProgressAnimator.cancel();
+                    engineProgressAnimator = null;
+                }
+                // Показываем сообщение об успешной загрузке и плавно скрываем прогресс-контейнер
+                showEngineLoadedSuccess();
+            }
+        });
+    }
+
+    /**
+     * Обновляет прогресс загрузки движка (0..1).
+     */
+    private void updateEngineLoadingProgress(float progress) {
+        AndroidUtilities.runOnUIThread(() -> {
+            if (engineLoading && progressView != null) {
+                progressView.setProgress(progress);
+                if (loadingTextView != null) {
+                    int percent = (int) (progress * 100);
+                    loadingTextView.setText("Загрузка движка... " + percent + "%");
+                }
+            }
+        });
+    }
+
+    /**
+     * Показывает ошибку загрузки движка.
+     */
+    private void showEngineLoadingError(String error) {
+        AndroidUtilities.runOnUIThread(() -> {
+            setEngineLoading(false, null);
+            // Можно показать тост или обновить errorTextView
+            if (errorTextView != null) {
+                errorTextView.setVisibility(View.VISIBLE);
+                errorTextView.setText("❌ Ошибка загрузки движка: " + error);
+                errorTextView.setAlpha(0f);
+                errorTextView.animate().alpha(1f).setDuration(300).start();
+            }
+        });
+    }
+
+    /**
+     * Показывает сообщение об успешной загрузке движка и модели.
+     */
+    private void showEngineLoadedSuccess() {
+        AndroidUtilities.runOnUIThread(() -> {
+            // Определяем, является ли модель локальной
+            boolean isLocalModel = aiSettings.getSelectedServiceType() == AISettings.AIServiceType.LOCAL_AI;
+            String successMessage;
+            if (isLocalModel) {
+                successMessage = "✅ Движок и модель успешно загружены!";
+            } else {
+                successMessage = "✅ Движок успешно загружен!";
+            }
+            
+            // Обновляем текст загрузки на успешное сообщение
+            if (loadingTextView != null) {
+                loadingTextView.setText(successMessage);
+                loadingTextView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGreenText));
+            }
+            
+            // Плавно скрываем прогресс-контейнер через 1.5 секунды
+            progressContainer.postDelayed(() -> {
+                if (progressContainer != null) {
+                    progressContainer.animate()
+                            .alpha(0f)
+                            .setDuration(500)
+                            .setInterpolator(new DecelerateInterpolator())
+                            .withEndAction(() -> {
+                                if (progressContainer != null) {
+                                    progressContainer.setVisibility(View.GONE);
+                                    // Восстанавливаем цвет текста загрузки
+                                    if (loadingTextView != null) {
+                                        loadingTextView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText));
+                                    }
+                                }
+                            })
+                            .start();
+                }
+            }, 1500);
+        });
     }
 
     private void animateViewsIn(View titleView, View serviceInfo, View countView, View promptContainer) {
@@ -999,36 +1350,35 @@ public class MagicActivity extends BaseFragment {
         // Очищаем поле ввода
         AndroidUtilities.runOnUIThread(() -> userQuestionEditText.setText(""));
 
-        // Показываем прогресс
-        analysisResultTextView.setVisibility(View.VISIBLE);
-        analysisResultTextView.setText("Анализирую...");
-        analysisResultTextView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText));
+        // Добавляем пузырёк пользователя
+        addUserMessage(question);
+
+        // Добавляем пузырёк бота с индикатором загрузки
+        currentBotMessageView = addBotMessage("Анализирую...");
         analyzeButton.setEnabled(false);
 
         isGenerating = true;
 
         // Вызываем анализ с поддержкой стриминга и историей чата
-        aiService.analyzeConversationStreaming(selectedMessages, question, selectedStyleId, chatHistory, new BaseAIService.StreamCallback() {
+        aiService.analyzeConversationStreaming(selectedMessages, question, null, chatHistory, new BaseAIService.StreamCallback() {
             private final StringBuilder accumulated = new StringBuilder();
 
             @Override
             public void onChunk(String chunk) {
                 AndroidUtilities.runOnUIThread(() -> {
-                    // Обновляем текст по мере поступления чанков
-                    if (accumulated.length() == 0 && analysisResultTextView.getText().toString().startsWith("Анализирую...")) {
-                        analysisResultTextView.setText(chunk);
-                    } else {
-                        accumulated.append(chunk);
-                        analysisResultTextView.setText(accumulated.toString());
+                    // Игнорируем пустые чанки
+                    if (chunk == null || chunk.trim().isEmpty()) {
+                        return;
                     }
-                    analysisResultTextView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
+                    // Всегда добавляем чанк в накопленный текст
+                    accumulated.append(chunk);
+                    // Обновляем текст текущего сообщения бота
+                    if (currentBotMessageView != null) {
+                        currentBotMessageView.setText(accumulated.toString());
+                        currentBotMessageView.setTextColor(Theme.getColor(Theme.key_chat_messageTextIn));
+                    }
                     // Прокручиваем вниз
-                    if (analysisContainer != null && analysisContainer.getParent() != null) {
-                        View scrollView = (View) analysisContainer.getParent().getParent();
-                        if (scrollView instanceof ScrollView) {
-                            ((ScrollView) scrollView).fullScroll(View.FOCUS_DOWN);
-                        }
-                    }
+                    scrollToBottom();
                 });
             }
 
@@ -1038,20 +1388,28 @@ public class MagicActivity extends BaseFragment {
                     // Добавляем ответ ассистента в историю
                     String fullResponse = accumulated.toString();
                     chatHistory.add(new BaseAIService.ChatMessage("assistant", fullResponse));
-                    analysisResultTextView.setText(fullResponse);
-                    analysisResultTextView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
+                    // Обновляем финальный текст (если ещё не обновлён)
+                    if (currentBotMessageView != null) {
+                        currentBotMessageView.setText(fullResponse);
+                        currentBotMessageView.setTextColor(Theme.getColor(Theme.key_chat_messageTextIn));
+                    }
                     analyzeButton.setEnabled(true);
                     isGenerating = false;
+                    currentBotMessageView = null;
                 });
             }
 
             @Override
             public void onError(String error) {
                 AndroidUtilities.runOnUIThread(() -> {
-                    analysisResultTextView.setText("Ошибка: " + error);
-                    analysisResultTextView.setTextColor(Theme.getColor(Theme.key_text_RedRegular));
+                    // Показываем ошибку в пузырьке бота
+                    if (currentBotMessageView != null) {
+                        currentBotMessageView.setText("Ошибка: " + error);
+                        currentBotMessageView.setTextColor(Theme.getColor(Theme.key_text_RedRegular));
+                    }
                     analyzeButton.setEnabled(true);
                     isGenerating = false;
+                    currentBotMessageView = null;
                 });
             }
         });

@@ -18,6 +18,7 @@ import org.json.JSONObject;
 import org.telegram.messenger.ApplicationLoader;
 import org.telegram.messenger.FileLog;
 import org.telegram.messenger.UserConfig;
+import org.telegram.messenger.openAI.services.EngineLoader;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -30,7 +31,7 @@ public class LocalAIService extends BaseAIService {
     private static final String TAG = "LocalAIService";
 
     private final Context appContext;
-    private InferenceEngine inferenceEngine;
+    private EngineLoader engineLoader;
     private final Map<String, AIModel> modelsMap = new HashMap<>();
 
     // Определяем доступные модели из каталога
@@ -55,9 +56,8 @@ public class LocalAIService extends BaseAIService {
         for (AIModel model : AVAILABLE_MODELS) {
             modelsMap.put(model.id, model);
         }
-        // Создаём движок (но не инициализируем, пока не выбран путь к модели)
-        this.inferenceEngine = new LiteRTEngine();
-        ((LiteRTEngine) inferenceEngine).setContext(appContext);
+        // Создаём загрузчик движка
+        this.engineLoader = new EngineLoader(appContext);
     }
 
     @Override
@@ -93,40 +93,41 @@ public class LocalAIService extends BaseAIService {
                 // Остальные параметры оставляем по умолчанию
                 .build();
 
-        // Инициализируем движок, если ещё не загружен
-        if (!inferenceEngine.isLoaded() || !modelPath.equals(inferenceEngine.getModelPath())) {
-            boolean initSuccess = inferenceEngine.init(modelPath, config);
-            if (!initSuccess) {
-                callback.onError("Не удалось инициализировать движок инференса для модели: " + modelPath);
-                return;
-            }
+        // Проверяем, загружен ли уже движок с этой моделью
+        InferenceEngine engine = engineLoader.getCurrentEngine();
+        if (engine != null && engine.isLoaded() && modelPath.equals(engine.getModelPath())) {
+            // Движок уже загружен, выполняем инференс
+            performInference(engine, systemPrompt, history, config, callback);
+            return;
         }
 
-        // Объединяем системный промпт и историю в один промпт для модели
-        String fullPrompt = systemPrompt + "\n\n" + history;
-
-        // Выполняем инференс в фоновом потоке
-        new Thread(() -> {
-            try {
-                InferenceResult result = inferenceEngine.infer(fullPrompt, config);
-                if (result.isSuccess()) {
-                    String generatedText = result.getGeneratedText();
-                    // Ожидаем JSON-ответ, как требует BaseAIService
-                    JSONObject jsonResponse = cleanJsonResponse(generatedText);
-                    if (jsonResponse == null) {
-                        // Если ответ не JSON, пытаемся обернуть в JSON
-                        jsonResponse = createFallbackResponse(generatedText);
-                    }
-                    JSONObject enhanced = enhanceSuggestions(jsonResponse);
-                    callback.onSuccess(enhanced);
-                } else {
-                    callback.onError("Ошибка инференса: " + result.getErrorMessage());
-                }
-            } catch (Exception e) {
-                FileLog.e(TAG + " Local AI inference error", e);
-                callback.onError("Исключение при инференсе: " + e.getMessage());
+        // Запускаем асинхронную загрузку движка
+        engineLoader.loadEngineAsync(modelPath, config, new EngineLoader.LoadCallback() {
+            @Override
+            public void onLoadStart() {
+                Log.d(TAG, "Начало загрузки движка");
+                notifyEngineLoadingStarted();
             }
-        }).start();
+
+            @Override
+            public void onLoadSuccess(InferenceEngine engine) {
+                notifyEngineLoadingFinished();
+                // Загрузка успешна, выполняем инференс
+                performInference(engine, systemPrompt, history, config, callback);
+            }
+
+            @Override
+            public void onLoadError(String error) {
+                notifyEngineLoadingError(error);
+                callback.onError("Ошибка загрузки движка: " + error);
+            }
+
+            @Override
+            public void onLoadProgress(int percent) {
+                // Опционально: обновить прогресс-бар
+                notifyEngineLoadingProgress(percent / 100.0f);
+            }
+        });
     }
 
     @Override
@@ -162,22 +163,80 @@ public class LocalAIService extends BaseAIService {
                 // Остальные параметры оставляем по умолчанию
                 .build();
 
-        // Инициализируем движок, если ещё не загружен
-        if (!inferenceEngine.isLoaded() || !modelPath.equals(inferenceEngine.getModelPath())) {
-            boolean initSuccess = inferenceEngine.init(modelPath, config);
-            if (!initSuccess) {
-                callback.onError("Не удалось инициализировать движок инференса для модели: " + modelPath);
-                return;
-            }
+        // Проверяем, загружен ли уже движок с этой моделью
+        InferenceEngine engine = engineLoader.getCurrentEngine();
+        if (engine != null && engine.isLoaded() && modelPath.equals(engine.getModelPath())) {
+            // Движок уже загружен, выполняем стриминговый инференс
+            performStreamingInference(engine, systemPrompt, history, config, callback);
+            return;
         }
 
+        // Запускаем асинхронную загрузку движка
+        engineLoader.loadEngineAsync(modelPath, config, new EngineLoader.LoadCallback() {
+            @Override
+            public void onLoadStart() {
+                Log.d(TAG, "Начало загрузки движка для стриминга");
+                notifyEngineLoadingStarted();
+            }
+
+            @Override
+            public void onLoadSuccess(InferenceEngine engine) {
+                notifyEngineLoadingFinished();
+                performStreamingInference(engine, systemPrompt, history, config, callback);
+            }
+
+            @Override
+            public void onLoadError(String error) {
+                notifyEngineLoadingError(error);
+                callback.onError("Ошибка загрузки движка: " + error);
+            }
+
+            @Override
+            public void onLoadProgress(int percent) {
+                // Опционально
+                notifyEngineLoadingProgress(percent / 100.0f);
+            }
+        });
+    }
+
+    private void performInference(InferenceEngine engine, String systemPrompt, String history,
+                                  InferenceConfig config, Callback callback) {
         // Объединяем системный промпт и историю в один промпт для модели
         String fullPrompt = systemPrompt + "\n\n" + history;
 
         // Выполняем инференс в фоновом потоке
         new Thread(() -> {
             try {
-                InferenceResult result = inferenceEngine.infer(fullPrompt, config);
+                InferenceResult result = engine.infer(fullPrompt, config);
+                if (result.isSuccess()) {
+                    String generatedText = result.getGeneratedText();
+                    // Ожидаем JSON-ответ, как требует BaseAIService
+                    JSONObject jsonResponse = cleanJsonResponse(generatedText);
+                    if (jsonResponse == null) {
+                        // Если ответ не JSON, пытаемся обернуть в JSON
+                        jsonResponse = createFallbackResponse(generatedText);
+                    }
+                    JSONObject enhanced = enhanceSuggestions(jsonResponse);
+                    callback.onSuccess(enhanced);
+                } else {
+                    callback.onError("Ошибка инференса: " + result.getErrorMessage());
+                }
+            } catch (Exception e) {
+                FileLog.e(TAG + " Local AI inference error", e);
+                callback.onError("Исключение при инференсе: " + e.getMessage());
+            }
+        }).start();
+    }
+
+    private void performStreamingInference(InferenceEngine engine, String systemPrompt, String history,
+                                           InferenceConfig config, StreamCallback callback) {
+        // Объединяем системный промпт и историю в один промпт для модели
+        String fullPrompt = systemPrompt + "\n\n" + history;
+
+        // Выполняем инференс в фоновом потоке
+        new Thread(() -> {
+            try {
+                InferenceResult result = engine.infer(fullPrompt, config);
                 if (result.isSuccess()) {
                     String generatedText = result.getGeneratedText();
                     // Для анализа диалога ожидаем plain text, а не JSON
@@ -277,8 +336,18 @@ public class LocalAIService extends BaseAIService {
      * Освободить ресурсы движка.
      */
     public void releaseEngine() {
-        if (inferenceEngine != null) {
-            inferenceEngine.release();
-        }
+        engineLoader.release();
+    }
+
+    /**
+     * Получить загрузчик движка (для управления загрузкой из UI).
+     */
+    public EngineLoader getEngineLoader() {
+        return engineLoader;
+    }
+
+    @Override
+    public boolean isEngineLoading() {
+        return engineLoader.isLoading();
     }
 }
