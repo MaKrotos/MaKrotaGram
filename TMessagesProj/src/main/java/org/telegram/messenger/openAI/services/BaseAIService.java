@@ -58,7 +58,8 @@ public abstract class BaseAIService {
                     "The response must be only JSON.";
 
     protected static final String ANALYSIS_SYSTEM_PROMPT =
-            "You are an AI assistant that analyzes chat conversations. Your task is to answer the user's question about the provided chat history. Use the conversation history to provide accurate, insightful, and helpful answers. Respond in a natural, conversational tone, in the same language as the chat or the user's question. Do not output JSON, just plain text.";
+            "You are an AI assistant that analyzes chat conversations. Your task is to answer the user's question about the provided chat history. Use the conversation history to provide accurate, insightful, and helpful answers. Respond in a natural, conversational tone, in the same language as the chat or the user's question. Do not output JSON, just plain text.\n\n" +
+            "If the user wants you to generate reply suggestions based on the analyzed conversation, you can include the special marker [GENERATE] anywhere in your response. When the app sees this marker, it will automatically trigger the suggestion generation. Use this marker only when appropriate, for example when the user asks for reply ideas, suggestions, or wants you to propose possible responses.";
 
     protected int currentAccount;
     protected AISettings aiSettings;
@@ -349,6 +350,11 @@ public abstract class BaseAIService {
     }
 
     public void generateSuggestions(ArrayList<MessageObject> messages, String userPrompt, String styleId, Callback callback) {
+        generateSuggestions(messages, userPrompt, styleId, null, callback);
+    }
+
+    public void generateSuggestions(ArrayList<MessageObject> messages, String userPrompt, String styleId,
+                                    List<ChatMessage> chatHistory, Callback callback) {
         if (!hasValidConfig()) {
             callback.onError(getServiceName() + " is not configured. Please check settings.");
             return;
@@ -366,8 +372,8 @@ public abstract class BaseAIService {
             long interlocutorId = getInterlocutorId(messages);
             String systemPrompt = getEnhancedSystemPrompt(interlocutorId, styleId);
 
-            // Формируем историю переписки (без дублирования промптов)
-            String conversationHistory = buildConversationHistory(messages, userPrompt, interlocutorId);
+            // Формируем историю переписки с учётом истории чата анализатора
+            String conversationHistory = buildConversationHistory(messages, userPrompt, interlocutorId, chatHistory);
 
             // Отправляем запрос в конкретный сервис с указанием модели
             makeRequest(systemPrompt, conversationHistory, model.id, callback);
@@ -379,7 +385,7 @@ public abstract class BaseAIService {
     }
 
     public void generateSuggestions(ArrayList<MessageObject> messages, Callback callback) {
-        generateSuggestions(messages, null, null, callback);
+        generateSuggestions(messages, null, null, null, callback);
     }
 
     // Генерация одного ответа
@@ -618,6 +624,104 @@ public abstract class BaseAIService {
             }
 
             history.append(sender).append(": ").append(text).append("\n");
+        }
+
+        history.append("\n========== RESPONSE REQUIREMENTS ==========\n");
+        history.append("SUGGEST 3-5 DIFFERENT OPTIONS THAT THE USER (Me) CAN SEND\n");
+        history.append("All options must be in first person (I, me, my) from the perspective of the user (Me)\n");
+        history.append("RESPONSE ONLY IN JSON FORMAT\n");
+
+        return history.toString();
+    }
+
+    /**
+     * Формирует историю переписки с учётом истории чата анализатора (предыдущие вопросы-ответы).
+     * @param messages история сообщений
+     * @param userPrompt пользовательский промпт
+     * @param interlocutorId ID собеседника
+     * @param chatHistory история предыдущих вопросов и ответов в этой сессии анализа
+     * @return строка истории для генерации предложений
+     */
+    protected String buildConversationHistory(ArrayList<MessageObject> messages, String userPrompt,
+                                              long interlocutorId, List<ChatMessage> chatHistory) {
+        StringBuilder history = new StringBuilder();
+
+        long currentUserId = UserConfig.getInstance(currentAccount).getClientUserId();
+
+        TLRPC.User currentUser = UserConfig.getInstance(currentAccount).getCurrentUser();
+        String myName = currentUser != null ? getDisplayName(currentUser) : "Me (bot)";
+
+        String interlocutorName = "INTERLOCUTOR";
+        if (interlocutorId > 0) {
+            TLRPC.User interlocutor = MessagesController.getInstance(currentAccount).getUser(interlocutorId);
+            if (interlocutor != null) {
+                interlocutorName = getDisplayName(interlocutor);
+            }
+        }
+
+        // Add user prompt if any
+        if (!TextUtils.isEmpty(userPrompt)) {
+            history.append("USER INSTRUCTION: ").append(userPrompt).append("\n\n");
+        }
+
+        // Промпты из UserPromptService больше не добавляются здесь, они включены в системный промпт
+
+        // Add chat information
+        history.append("========== CHAT INFO ==========\n");
+        history.append("Me (bot): ").append(myName).append("\n");
+        history.append("Interlocutor: ").append(interlocutorName).append("\n");
+        // Add app language
+        Locale currentLocale = LocaleController.getInstance().getCurrentLocale();
+        String appLanguage = currentLocale.getDisplayLanguage(Locale.ENGLISH);
+        history.append("APP LANGUAGE: ").append(appLanguage).append("\n");
+
+        // Determine chat type
+        boolean isGroupChat = isGroupChat(messages);
+        if (isGroupChat) {
+            history.append("CHAT TYPE: Group\n");
+            addGroupParticipants(history, messages);
+        } else {
+            history.append("CHAT TYPE: Private\n");
+        }
+
+        // Анализ последнего сообщения
+        MessageObject lastMessage = messages.get(messages.size() - 1);
+        boolean lastMessageIsFromInterlocutor = lastMessage.getSenderId() == interlocutorId;
+
+        history.append("\n========== CURRENT SITUATION ==========\n");
+        if (lastMessageIsFromInterlocutor) {
+            history.append("").append(interlocutorName).append(" wrote the last message\n");
+            history.append("Task: suggest REPLY options that the user (Me) can send to them\n");
+        } else {
+            history.append("").append(getSenderNameFromId(lastMessage.getSenderId())).append(" wrote the last message\n");
+            history.append("Task: suggest CONTINUATION options that the user (Me) can send next\n");
+        }
+
+        // Message history
+        history.append("\n========== CONVERSATION HISTORY ==========\n");
+        history.append("(Messages from oldest to newest)\n\n");
+
+        for (int i = 0; i < messages.size(); i++) {
+            MessageObject msg = messages.get(i);
+            String sender = getSenderName(msg, currentUserId, myName, interlocutorName, interlocutorId);
+            String text = getMessageText(msg);
+
+            if (i == messages.size() - 1) {
+                history.append("[LAST] ");
+            } else if (i == messages.size() - 2) {
+                history.append("[SECOND LAST] ");
+            }
+
+            history.append(sender).append(": ").append(text).append("\n");
+        }
+
+        // Добавляем историю чата анализатора (предыдущие вопросы-ответы)
+        if (chatHistory != null && !chatHistory.isEmpty()) {
+            history.append("\n========== PREVIOUS ANALYSIS DIALOGUE ==========\n");
+            history.append("(Previous questions and answers in this session)\n\n");
+            for (ChatMessage chatMsg : chatHistory) {
+                history.append(chatMsg.role.toUpperCase()).append(": ").append(chatMsg.content).append("\n");
+            }
         }
 
         history.append("\n========== RESPONSE REQUIREMENTS ==========\n");

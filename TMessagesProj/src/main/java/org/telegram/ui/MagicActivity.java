@@ -70,6 +70,7 @@ public class MagicActivity extends BaseFragment {
     private boolean userRequestedGeneration = false;
     private boolean engineLoading = false;
     private ValueAnimator engineProgressAnimator = null;
+    private boolean generateAfterAnalysis = false;
 
     // Новые поля для анализа диалога
     private android.widget.EditText userQuestionEditText;
@@ -353,8 +354,8 @@ public class MagicActivity extends BaseFragment {
                 AndroidUtilities.dp(16),
                 Theme.getColor(Theme.key_windowBackgroundWhite)
         ));
-        styleContainer.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(10), AndroidUtilities.dp(12), AndroidUtilities.dp(10));
-        contentLayout.addView(styleContainer, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER, 8, 10, 8, 10));
+        styleContainer.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(16), AndroidUtilities.dp(16), AndroidUtilities.dp(16));
+        contentLayout.addView(styleContainer, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER, 8, 12, 8, 12));
 
         TextView styleLabel = new TextView(context);
         styleLabel.setText("Стиль ответа:");
@@ -378,14 +379,14 @@ public class MagicActivity extends BaseFragment {
         // Раздел анализа диалога
         analysisContainer = new LinearLayout(context);
         analysisContainer.setOrientation(LinearLayout.VERTICAL);
-        analysisContainer.setPadding(AndroidUtilities.dp(20), AndroidUtilities.dp(20), AndroidUtilities.dp(20), AndroidUtilities.dp(20));
+        analysisContainer.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(16), AndroidUtilities.dp(16), AndroidUtilities.dp(16));
         analysisContainer.setBackgroundDrawable(Theme.createRoundRectDrawable(
                 AndroidUtilities.dp(16),
                 Theme.getColor(Theme.key_windowBackgroundWhite)
         ));
         LinearLayout.LayoutParams analysisParams = LayoutHelper.createLinear(
                 LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT,
-                Gravity.CENTER, 20, 15, 20, 15
+                Gravity.CENTER, 16, 12, 16, 12
         );
         contentLayout.addView(analysisContainer, analysisParams);
 
@@ -480,11 +481,11 @@ public class MagicActivity extends BaseFragment {
                 AndroidUtilities.dp(12),
                 Theme.getColor(Theme.key_featuredStickers_addButton)
         ));
-        generateButton.setPadding(AndroidUtilities.dp(24), AndroidUtilities.dp(16),
-                AndroidUtilities.dp(24), AndroidUtilities.dp(16));
+        generateButton.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(12),
+                AndroidUtilities.dp(16), AndroidUtilities.dp(12));
         LinearLayout.LayoutParams buttonParams = LayoutHelper.createLinear(
                 LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT,
-                Gravity.CENTER, 0, 20, 0, 20
+                Gravity.CENTER, 0, 16, 0, 16
         );
         contentLayout.addView(generateButton, buttonParams);
 
@@ -1007,6 +1008,10 @@ public class MagicActivity extends BaseFragment {
     }
 
     private void generateSuggestions() {
+        generateSuggestionsWithHistory(null);
+    }
+
+    private void generateSuggestionsWithHistory(List<BaseAIService.ChatMessage> chatHistory) {
         progressContainer.setVisibility(View.VISIBLE);
         progressContainer.setAlpha(0f);
         progressContainer.animate()
@@ -1034,7 +1039,7 @@ public class MagicActivity extends BaseFragment {
         });
         progressAnim.start();
 
-        aiService.generateSuggestions(selectedMessages, promptText, selectedStyleId, new BaseAIService.Callback() {
+        aiService.generateSuggestions(selectedMessages, promptText, selectedStyleId, chatHistory, new BaseAIService.Callback() {
             @Override
             public void onSuccess(JSONObject response) {
                 AndroidUtilities.runOnUIThread(() -> {
@@ -1131,8 +1136,8 @@ public class MagicActivity extends BaseFragment {
                 AndroidUtilities.dp(14),
                 Theme.getColor(Theme.key_windowBackgroundWhite)
         ));
-        explanationLayout.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(14),
-                AndroidUtilities.dp(16), AndroidUtilities.dp(14));
+        explanationLayout.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(16),
+                AndroidUtilities.dp(16), AndroidUtilities.dp(16));
 
         LinearLayout.LayoutParams layoutParams = LayoutHelper.createLinear(
                 LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT,
@@ -1180,11 +1185,11 @@ public class MagicActivity extends BaseFragment {
                 Theme.getColor(Theme.key_windowBackgroundWhite)
         ));
         suggestionCard.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(16),
-                AndroidUtilities.dp(16), AndroidUtilities.dp(14));
+                AndroidUtilities.dp(16), AndroidUtilities.dp(16));
 
         LinearLayout.LayoutParams cardParams = LayoutHelper.createLinear(
                 LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT,
-                Gravity.CENTER, 16, index == 0 ? 4 : 2, 16, 2
+                Gravity.CENTER, 16, 8, 16, 8
         );
         suggestionsContainer.addView(suggestionCard, cardParams);
 
@@ -1372,9 +1377,19 @@ public class MagicActivity extends BaseFragment {
                     }
                     // Всегда добавляем чанк в накопленный текст
                     accumulated.append(chunk);
+                    // Проверяем наличие команды [GENERATE] в накопленном тексте
+                    String accumulatedStr = accumulated.toString();
+                    if (accumulatedStr.contains("[GENERATE]")) {
+                        generateAfterAnalysis = true;
+                        // Удаляем маркер из текста, чтобы не отображать пользователю
+                        String cleaned = accumulatedStr.replace("[GENERATE]", "").trim();
+                        accumulated.setLength(0);
+                        accumulated.append(cleaned);
+                        accumulatedStr = cleaned;
+                    }
                     // Обновляем текст текущего сообщения бота
                     if (currentBotMessageView != null) {
-                        currentBotMessageView.setText(accumulated.toString());
+                        currentBotMessageView.setText(accumulatedStr);
                         currentBotMessageView.setTextColor(Theme.getColor(Theme.key_chat_messageTextIn));
                     }
                     // Прокручиваем вниз
@@ -1395,6 +1410,11 @@ public class MagicActivity extends BaseFragment {
                     }
                     analyzeButton.setEnabled(true);
                     isGenerating = false;
+                    // Если была команда [GENERATE], запускаем генерацию предложений с историей чата
+                    if (generateAfterAnalysis) {
+                        generateAfterAnalysis = false;
+                        generateSuggestionsWithHistory(chatHistory);
+                    }
                     currentBotMessageView = null;
                 });
             }
@@ -1409,6 +1429,7 @@ public class MagicActivity extends BaseFragment {
                     }
                     analyzeButton.setEnabled(true);
                     isGenerating = false;
+                    generateAfterAnalysis = false;
                     currentBotMessageView = null;
                 });
             }
