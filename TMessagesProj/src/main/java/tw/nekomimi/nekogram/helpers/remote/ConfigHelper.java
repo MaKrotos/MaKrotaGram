@@ -85,24 +85,29 @@ public class ConfigHelper extends BaseRemoteHelper {
     }
 
     public static List<News> getNewsForProxy() {
-        return getNews()
+        List<News> newsList = getNews();
+        if (newsList == null) {
+            return Collections.emptyList();
+        }
+        return newsList
                 .stream()
                 .filter(news -> news.type == TYPE_PROXY)
                 .filter(news -> news.id == null || !preferences.getBoolean("news_dismissed_" + news.id, false))
                 .toList();
     }
 
+
     public static List<News> getNewsForSettings() {
         List<News> newsList = getNews();
         if (newsList == null) {
-            return new ArrayList<>(); // или Collections.emptyList()
+            return Collections.emptyList();
         }
-
         return newsList.stream()
                 .filter(news -> news.type == TYPE_NEWS || news.type == TYPE_PROXY)
                 .filter(news -> news.id == null || !preferences.getBoolean("news_dismissed_" + news.id, false))
                 .toList();
     }
+
 
     public static TLRPC.TL_pendingSuggestion getNewsSuggestion() {
         List<News> news = getNews(); // Получаем список новостей
