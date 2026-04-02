@@ -1,4 +1,4 @@
-package tw.nekomimi.nekogram.forward;
+package tw.fdw.makrotagram.forward;
 
 import android.annotation.SuppressLint;
 import android.content.Context;

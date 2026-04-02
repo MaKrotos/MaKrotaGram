@@ -1,4 +1,4 @@
-package tw.nekomimi.nekogram.helpers;
+package tw.fdw.makrotagram.helpers;
 
 import static org.telegram.messenger.AndroidUtilities.dp;
 import static org.telegram.messenger.LocaleController.getString;
@@ -24,7 +24,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.util.List;
 
-import tw.nekomimi.nekogram.NekoConfig;
+import tw.fdw.makrotagram.NekoConfig;
 
 public class TypefaceHelper {
 

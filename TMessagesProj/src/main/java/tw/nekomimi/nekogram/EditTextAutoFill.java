@@ -1,4 +1,4 @@
-package tw.nekomimi.nekogram;
+package tw.fdw.makrotagram;
 
 import android.annotation.TargetApi;
 import android.content.Context;

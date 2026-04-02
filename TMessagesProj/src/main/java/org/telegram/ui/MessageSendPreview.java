@@ -1,7 +1,6 @@
 package org.telegram.ui;
 
 import static org.telegram.messenger.AndroidUtilities.dp;
-import static org.telegram.messenger.LocaleController.getString;
 
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
@@ -1228,7 +1227,6 @@ public class MessageSendPreview extends Dialog implements NotificationCenter.Not
         };
         this.anchorSendButton.copyTo(this.sendButton);
         this.sendButton.open.set(sendButton.open.get(), true);
-        this.sendButton.setContentDescription(getString(R.string.Send));
         this.sendButton.setOnClickListener(onClick);
         containerView.addView(this.sendButton, new ViewGroup.LayoutParams(sendButton.getWidth(), sendButton.getHeight()));
         sendButtonWidth = anchorSendButton.width(sendButton.getHeight());

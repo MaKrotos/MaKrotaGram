@@ -1,4 +1,4 @@
-package tw.nekomimi.nekogram.streaming;
+package tw.fdw.makrotagram.streaming;
 
 import android.app.Activity;
 import android.content.ContentProvider;

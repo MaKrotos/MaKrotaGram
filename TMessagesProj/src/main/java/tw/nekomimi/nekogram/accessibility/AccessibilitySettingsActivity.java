@@ -1,4 +1,4 @@
-package tw.nekomimi.nekogram.accessibility;
+package tw.fdw.makrotagram.accessibility;
 
 import android.view.View;
 
@@ -10,8 +10,8 @@ import org.telegram.ui.Components.UniversalAdapter;
 
 import java.util.ArrayList;
 
-import tw.nekomimi.nekogram.helpers.PopupHelper;
-import tw.nekomimi.nekogram.settings.BaseNekoSettingsActivity;
+import tw.fdw.makrotagram.helpers.PopupHelper;
+import tw.fdw.makrotagram.settings.BaseNekoSettingsActivity;
 
 public class AccessibilitySettingsActivity extends BaseNekoSettingsActivity {
     private static final ArrayList<String> SEEKBAR_TIME_VALUES = new ArrayList<>();

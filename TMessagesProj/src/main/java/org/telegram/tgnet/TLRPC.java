@@ -44,7 +44,7 @@ import org.telegram.ui.Stories.MessageMediaStoryFull_old;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-import tw.nekomimi.nekogram.helpers.WebAppHelper;
+import tw.fdw.makrotagram.helpers.WebAppHelper;
 
 import me.vkryl.core.BitwiseUtils;
 

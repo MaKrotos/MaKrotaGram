@@ -1,4 +1,4 @@
-package tw.nekomimi.nekogram.helpers.remote;
+package tw.fdw.makrotagram.helpers.remote;
 
 import com.google.gson.annotations.Expose;
 import com.google.gson.annotations.SerializedName;
@@ -12,8 +12,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import tw.nekomimi.nekogram.Extra;
-import tw.nekomimi.nekogram.NekoConfig;
+import tw.fdw.makrotagram.Extra;
+import tw.fdw.makrotagram.NekoConfig;
 
 public class ConfigHelper extends BaseRemoteHelper {
     private static final String NEWS_METHOD = "get_config";
@@ -85,37 +85,50 @@ public class ConfigHelper extends BaseRemoteHelper {
     }
 
     public static List<News> getNewsForProxy() {
-        return getNews()
+        List<News> newsList = getNews();
+        if (newsList == null) {
+            return Collections.emptyList();
+        }
+        return newsList
                 .stream()
                 .filter(news -> news.type == TYPE_PROXY)
                 .filter(news -> news.id == null || !preferences.getBoolean("news_dismissed_" + news.id, false))
                 .toList();
     }
 
+
     public static List<News> getNewsForSettings() {
-        return getNews()
-                .stream()
+        List<News> newsList = getNews();
+        if (newsList == null) {
+            return Collections.emptyList();
+        }
+        return newsList.stream()
                 .filter(news -> news.type == TYPE_NEWS || news.type == TYPE_PROXY)
                 .filter(news -> news.id == null || !preferences.getBoolean("news_dismissed_" + news.id, false))
                 .toList();
     }
 
+
     public static TLRPC.TL_pendingSuggestion getNewsSuggestion() {
-        return getNews()
-                .stream()
-                .filter(news -> news.type == TYPE_SUGGESTION)
-                .filter(news -> news.id == null || !preferences.getBoolean("news_dismissed_" + news.id, false))
+        List<News> news = getNews(); // Получаем список новостей
+        if (news == null) { // Проверяем на null
+            return null; // Или можно вернуть пустое значение
+        }
+
+        return news.stream()
+                .filter(newsItem -> newsItem.type == TYPE_SUGGESTION)
+                .filter(newsItem -> newsItem.id == null || !preferences.getBoolean("news_dismissed_" + newsItem.id, false))
                 .findAny()
-                .map(news -> {
+                .map(newsItem -> {
                     var suggestion = new TLRPC.TL_pendingSuggestion();
                     suggestion.title = new TLRPC.TL_textWithEntities();
-                    suggestion.title.text = news.title;
-                    suggestion.title.entities.addAll(parseBotAPIEntities(news.titleEntities, false));
+                    suggestion.title.text = newsItem.title;
+                    suggestion.title.entities.addAll(parseBotAPIEntities(newsItem.titleEntities, false));
                     suggestion.description = new TLRPC.TL_textWithEntities();
-                    suggestion.description.text = news.summary;
-                    suggestion.description.entities.addAll(parseBotAPIEntities(news.summaryEntities, false));
-                    suggestion.url = news.url;
-                    suggestion.suggestion = news.id;
+                    suggestion.description.text = newsItem.summary;
+                    suggestion.description.entities.addAll(parseBotAPIEntities(newsItem.summaryEntities, false));
+                    suggestion.url = newsItem.url;
+                    suggestion.suggestion = newsItem.id;
                     return suggestion;
                 })
                 .orElse(null);

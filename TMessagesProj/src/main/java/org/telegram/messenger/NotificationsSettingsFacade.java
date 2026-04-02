@@ -175,7 +175,7 @@ public class NotificationsSettingsFacade {
                     messagesStorage.setDialogFlags(dialogId, 0);
                 }
             }
-            applySoundSettings(notify_settings.other_sound, editor, dialogId, topicId, 0, false);
+            applySoundSettings(notify_settings.android_sound, editor, dialogId, topicId, 0, false);
             editor.apply();
             if (updated) {
                 AndroidUtilities.runOnUIThread(() -> {

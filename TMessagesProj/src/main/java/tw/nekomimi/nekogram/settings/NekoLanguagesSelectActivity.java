@@ -1,4 +1,4 @@
-package tw.nekomimi.nekogram.settings;
+package tw.fdw.makrotagram.settings;
 
 import android.content.Context;
 import android.text.TextUtils;
@@ -30,8 +30,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 
-import tw.nekomimi.nekogram.NekoConfig;
-import tw.nekomimi.nekogram.translator.Translator;
+import tw.fdw.makrotagram.NekoConfig;
+import tw.fdw.makrotagram.translator.Translator;
 
 public class NekoLanguagesSelectActivity extends BaseNekoSettingsActivity {
 

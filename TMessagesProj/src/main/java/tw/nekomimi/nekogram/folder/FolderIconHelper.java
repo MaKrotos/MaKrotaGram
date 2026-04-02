@@ -1,4 +1,4 @@
-package tw.nekomimi.nekogram.folder;
+package tw.fdw.makrotagram.folder;
 
 import androidx.core.util.Pair;
 
@@ -9,7 +9,7 @@ import org.telegram.messenger.R;
 
 import java.util.LinkedHashMap;
 
-import tw.nekomimi.nekogram.NekoConfig;
+import tw.fdw.makrotagram.NekoConfig;
 
 
 public class FolderIconHelper {

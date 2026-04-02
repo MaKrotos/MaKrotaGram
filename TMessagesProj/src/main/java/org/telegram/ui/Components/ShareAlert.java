@@ -135,8 +135,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
-import tw.nekomimi.nekogram.forward.ForwardContext;
-import tw.nekomimi.nekogram.forward.SendOptionsMenuLayout;
+import tw.fdw.makrotagram.forward.ForwardContext;
+import tw.fdw.makrotagram.forward.SendOptionsMenuLayout;
 
 public class ShareAlert extends BottomSheet implements NotificationCenter.NotificationCenterDelegate {
 
@@ -1340,7 +1340,6 @@ public class ShareAlert extends BottomSheet implements NotificationCenter.Notifi
                 fadeDrawable.draw(canvas);
             }
         };
-        bottomFadeView.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
         containerView.addView(bottomFadeView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 300, Gravity.BOTTOM));
 
         FrameLayout.LayoutParams frameLayoutParams = new FrameLayout.LayoutParams(LayoutHelper.MATCH_PARENT, AndroidUtilities.getShadowHeight(), Gravity.TOP | Gravity.LEFT);

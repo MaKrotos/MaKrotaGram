@@ -1,10 +1,10 @@
-package tw.nekomimi.nekogram.helpers;
+package tw.fdw.makrotagram.helpers;
 
 import android.media.audiofx.AcousticEchoCanceler;
 import android.media.audiofx.AutomaticGainControl;
 import android.media.audiofx.NoiseSuppressor;
 
-import tw.nekomimi.nekogram.NekoConfig;
+import tw.fdw.makrotagram.NekoConfig;
 
 public class VoiceEnhancementsHelper {
     private static AutomaticGainControl automaticGainControl;

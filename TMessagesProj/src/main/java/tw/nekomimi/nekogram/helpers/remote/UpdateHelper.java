@@ -1,4 +1,4 @@
-package tw.nekomimi.nekogram.helpers.remote;
+package tw.fdw.makrotagram.helpers.remote;
 
 import android.content.pm.PackageInfo;
 import android.os.Build;

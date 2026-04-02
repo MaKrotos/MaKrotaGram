@@ -1,4 +1,4 @@
-package tw.nekomimi.nekogram.helpers;
+package tw.fdw.makrotagram.helpers;
 
 import android.net.Uri;
 import android.text.TextUtils;
@@ -14,14 +14,14 @@ import org.telegram.ui.LaunchActivity;
 import java.util.Locale;
 import java.util.function.Consumer;
 
-import tw.nekomimi.nekogram.settings.BaseNekoSettingsActivity;
-import tw.nekomimi.nekogram.settings.NekoAppearanceSettingsActivity;
-import tw.nekomimi.nekogram.settings.NekoChatSettingsActivity;
-import tw.nekomimi.nekogram.settings.NekoDonateActivity;
-import tw.nekomimi.nekogram.settings.NekoEmojiSettingsActivity;
-import tw.nekomimi.nekogram.settings.NekoExperimentalSettingsActivity;
-import tw.nekomimi.nekogram.settings.NekoGeneralSettingsActivity;
-import tw.nekomimi.nekogram.settings.NekoPasscodeSettingsActivity;
+import tw.fdw.makrotagram.settings.BaseNekoSettingsActivity;
+import tw.fdw.makrotagram.settings.NekoAppearanceSettingsActivity;
+import tw.fdw.makrotagram.settings.NekoChatSettingsActivity;
+import tw.fdw.makrotagram.settings.NekoDonateActivity;
+import tw.fdw.makrotagram.settings.NekoEmojiSettingsActivity;
+import tw.fdw.makrotagram.settings.NekoExperimentalSettingsActivity;
+import tw.fdw.makrotagram.settings.NekoGeneralSettingsActivity;
+import tw.fdw.makrotagram.settings.NekoPasscodeSettingsActivity;
 
 public class SettingsHelper {
 

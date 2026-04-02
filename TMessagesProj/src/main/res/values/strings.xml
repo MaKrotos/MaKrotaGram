@@ -10530,5 +10530,43 @@
     <string name="RelativeDateMenuAddToACalendar">Add to Calendar</string>
     <string name="RelativeDateMenuSetAReminder">Set a Reminder</string>
     <string name="RelativeDateCopied">Date copied to clipboard</string>
+    <string name="Magic">Magic</string>
 
+
+    <string name="UserPromptSettings">Prompt settings</string>
+    <string name="PromptText">Prompt text</string>
+    <string name="PromptHint">Enter your prompt here...</string>
+    <string name="EditPrompt">Edit prompt</string>
+    <string name="PromptEnabled">Enable prompt</string>
+    <string name="PromptInfo">This prompt will be used when interacting with AI features</string>
+    <string name="PromptSettingsSection">PROMPT CONFIGURATION</string>
+    <string name="NotSet">Not set</string>
+
+
+    <!-- Prompt menu item in profile -->
+    <string name="UserPrompt">User prompt</string>
+    <string name="EditUserPrompt">Edit prompt for this user</string>
+    <string name="PromptPlaceholder">Enter your prompt for this user...</string>
+    <string name="PromptSaved">Prompt saved</string>
+    <string name="PromptDeleted">Prompt deleted</string>
+    <string name="ClearPrompt">Clear prompt</string>
+    <string name="ClearPromptConfirm">Are you sure you want to clear the prompt for this user?</string>
+    <string name="PromptForUser">Prompt for %1$s</string>
+    <string name="magic">Magic</string>
+
+
+    <string name="SelectedMessages">Selected messages: %d</string>
+    <string name="Thinking">Thinking...</string>
+    <string name="ApiKeyNotFound">🔑 API key not found</string>
+    <string name="ApiKeyNotFoundDesc">To use AI magic, you need to add an OpenAI API key in settings</string>
+    <string name="OpenSettingsToast">Open settings and add API key</string>
+    <string name="ResponseProcessingError">Error processing response</string>
+    <string name="Question">Question</string>
+    <string name="Continuation">Continuation</string>
+
+    <string name="Use">Use</string>
+    <string name="FeatureComingSoon">Feature will be available later</string>
+    <string name="AISettings">AI Settings</string>
+    <string name="Humor">Humor</string>
+    <string name="AppNameMaKrota">MaKrotaGram</string>
 </resources>

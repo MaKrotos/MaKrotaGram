@@ -1,4 +1,4 @@
-package tw.nekomimi.nekogram.helpers;
+package tw.fdw.makrotagram.helpers;
 
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.BaseController;
@@ -10,8 +10,8 @@ import org.telegram.tgnet.TLRPC;
 
 import java.util.ArrayList;
 
-import tw.nekomimi.nekogram.Extra;
-import tw.nekomimi.nekogram.NekoConfig;
+import tw.fdw.makrotagram.Extra;
+import tw.fdw.makrotagram.NekoConfig;
 
 public class InlineBotHelper extends BaseController {
 

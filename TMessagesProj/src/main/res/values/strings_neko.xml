@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="AppNameNeko" translatable="false">@string/Nekogram</string>
-    <string name="Nekogram" translatable="false">Nekogram</string>
-    <string name="NekogramBeta" translatable="false">Nekogram Beta</string>
+    <string name="AppNameNeko" translatable="false">@string/MaKrotaGram</string>
+    <string name="MaKrotaGram" translatable="false">MaKrotaGram</string>
+    <string name="NekogramBeta" translatable="false">MaKrotaGram Beta</string>
     <string name="NekoSettings">Neko Settings</string>
     <string name="PreferIPv6">Prefer connecting through IPv6</string>
     <string name="MessageMenu">Message menu</string>
@@ -25,7 +25,7 @@
     <string name="AddToSavedMessages">Save Message</string>
     <string name="CreateMention">Create Mention</string>
     <string name="Prpr">Peropero</string>
-    <string name="NekogramRunning">Nekogram is running</string>
+    <string name="NekogramRunning">MaKrotaGram is running</string>
     <string name="EventType">Sidebar icon set</string>
     <string name="DependsOnDate">Depends on date</string>
     <string name="Christmas">Christmas</string>
@@ -67,8 +67,8 @@
     <string name="IgnoreBlockedAbout">IT IS NOT REALLY HIDE! Messages are still available to view, but text will be converted to Spoiler and media won\'t auto download.</string>
     <string name="Donate">Donate</string>
     <string name="DonateAbout">Support our development.</string>
-    <string name="TranslationAbout">Help us to translate Nekogram to your language.</string>
-    <string name="Translation">Translate Nekogram</string>
+    <string name="TranslationAbout">Help us to translate MaKrotaGram to your language.</string>
+    <string name="Translation">Translate MaKrotaGram</string>
     <string name="GooglePlay">Google Play</string>
     <string name="ResetStickerSize">Reset sticker size</string>
     <string name="OfficialChannelUsername">nekoupdates</string>
@@ -84,7 +84,7 @@
     <string name="AutoPauseVideo">Auto pause video</string>
     <string name="AutoPauseVideoAbout">When lock screen/switch to background.</string>
     <string name="DisableProximityEvents">Disable proximity events</string>
-    <string name="Page1Message2">Nekogram is an **unofficial** messaging app\nthat uses Telegram\'s API.</string>
+    <string name="Page1Message2">MaKrotaGram is an **unofficial** messaging app\nthat uses Telegram\'s API.</string>
     <string name="MapDriftingFix">Map drifting fix for Mainland China</string>
     <string name="VoiceEnhancements">Voice enhancements</string>
     <string name="VoiceEnhancementsAbout">Noise Suppression and Voice Normalization</string>
@@ -119,7 +119,7 @@
     <string name="RegistrationDateNewer">Newer than %s</string>
     <string name="RegistrationDateOlder">Older than %s</string>
     <string name="RegistrationDateApproximately">Approximately %s</string>
-    <string name="UpdateNekogram">Update Nekogram</string>
+    <string name="UpdateNekogram">Update MaKrotaGram</string>
     <string name="TranslationTarget">Target language</string>
     <string name="TranslationTargetApp">Follow app</string>
     <string name="Translator">Translator</string>
@@ -145,9 +145,9 @@
     <string name="OfficialSite">Official site</string>
     <string name="MutualContact">Mutual contact</string>
     <string name="MutualContactDescription">This contact is a mutual contact.</string>
-    <string name="InviteTextNeko">Hey, I\'m using Nekogram to chat. Join me! Download it here: %1$s</string>
-    <string name="ShareNekogram">Share Nekogram...</string>
-    <string name="NekogramVersion">Nekogram %1$s\nBased on Telegram %2$s\nDesigned by %3$s</string>
+    <string name="InviteTextNeko">Hey, I\'m using MaKrotaGram to chat. Join me! Download it here: %1$s</string>
+    <string name="ShareNekogram">Share MaKrotaGram...</string>
+    <string name="NekogramVersion">MaKrotaGram %1$s\nBased on Telegram %2$s\nDesigned by %3$s</string>
     <string name="UpdateInstalling">Installing update...</string>
     <string name="UpdateInstallingNotification">A notification will be shown when the update completes.</string>
     <string name="UpdateInstallingRelaunch">The app will relaunch when the update completes.</string>
@@ -170,7 +170,7 @@
     <string name="SaveToDownloadCount_few">Saving %1$d files to downloads</string>
     <string name="SaveToDownloadCount_many">Saving %1$d files to downloads</string>
     <string name="SaveToDownloadCount_other">Saving %1$d files to downloads</string>
-    <string name="AppLinkNotVerifiedMessage">For Android 12 and newer, you need to manually add link to verified links in order to open t.me links in Nekogram.</string>
+    <string name="AppLinkNotVerifiedMessage">For Android 12 and newer, you need to manually add link to verified links in order to open t.me links in MaKrotaGram.</string>
     <string name="AppLinkNotVerifiedTitle">App links not verified</string>
     <string name="AutoTranslate">Auto translate</string>
     <string name="AutoTranslateAbout">Automatically translate messages that are in another language.</string>
@@ -271,8 +271,6 @@
     <string name="QuickForward">Use quick forward menu</string>
     <string name="DidNotGetTheCodeBlameDurov">If you didn\'t get the code on another device or you don\'t have Telegram logged in on another device, please use the official Telegram app to receive the code.\n\nTelegram has **disabled the ability to log in with SMS** on third-party apps. Users logging into third-party apps are only able to receive login codes via Telegram.\n\nWe cannot help you with this, if you have any issues with logging in, please contact Telegram Support.</string>
     <string name="ChangePhoneNumberBlameDurov">Telegram has **disabled the ability to change phone number** on third-party apps. Users are only able to change phone number via Telegram.</string>
-    <string name="CreatePasskeyBlameDurov">Telegram does not support Passkeys in third-party apps. Users are only able to create and use Passkeys via Telegram.</string>
-    <string name="OpenOfficialApp">Open Official App</string>
     <string name="NavigationAnimation">Navigation animation</string>
     <string name="NavigationAnimationBezier">Classic</string>
     <string name="NavigationAnimationSpring">Natural</string>
@@ -311,6 +309,8 @@
     <string name="CloudflareAccountID">Account ID</string>
     <string name="CloudflareAPIToken">API Token</string>
     <string name="CloudflareCredentialsDialog">Configure Cloudflare Account ID and API Token.\n**How to obtain?**</string>
+    <string name="OpenAIAPIKey">OpenAI API Key</string>\
+    <string name="OpenAIBasicPropmpt">Basic prompt Open AI</string>
     <string name="PreferOriginalQuality">Prefer original quality</string>
     <string name="PreferOriginalQualityDesc">View videos in original quality.</string>
     <string name="AutoInlineBot">Auto inline bot</string>
@@ -321,10 +321,6 @@
     <string name="TranslationKeepFormatting">Preserve text formatting in translation</string>
     <string name="PredictiveBackAnimation">Predictive back animation</string>
     <string name="HideBottomNavigationBar">Hide bottom navigation bar</string>
-    <string name="TabsPosition">Tabs position</string>
-    <string name="TabsPositionTop">Top</string>
-    <string name="TabsPositionBottom">Bottom</string>
-    <string name="StrokeOnViews">Glare effects</string>
 
     <!-- Accessibility -->
     <string name="AccessibilitySettings">Accessibility settings</string>

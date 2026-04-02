@@ -1,4 +1,4 @@
-package tw.nekomimi.nekogram;
+package tw.fdw.makrotagram;
 
 import android.app.Activity;
 import android.content.SharedPreferences;
@@ -21,11 +21,11 @@ import java.util.Set;
 import java.util.function.BiConsumer;
 
 import app.nekogram.translator.DeepLTranslator;
-import tw.nekomimi.nekogram.helpers.AnalyticsHelper;
-import tw.nekomimi.nekogram.helpers.CloudSettingsHelper;
-import tw.nekomimi.nekogram.helpers.LensHelper;
-import tw.nekomimi.nekogram.translator.Translator;
-import tw.nekomimi.nekogram.translator.TranslatorApps;
+import tw.fdw.makrotagram.helpers.AnalyticsHelper;
+import tw.fdw.makrotagram.helpers.CloudSettingsHelper;
+import tw.fdw.makrotagram.helpers.LensHelper;
+import tw.fdw.makrotagram.translator.Translator;
+import tw.fdw.makrotagram.translator.TranslatorApps;
 
 public class NekoConfig {
     //TODO: refactor
@@ -92,6 +92,10 @@ public class NekoConfig {
     public static int transcribeProvider = TRANSCRIBE_PREMIUM;
     public static String cfAccountID = "";
     public static String cfApiToken = "";
+    public static String openaiApiKey = "";
+    public static String OpenAIBasicPropmpt = "";
+
+    public static volatile String geminiApiKey = "";
 
     public static boolean showAddToSavedMessages = true;
     public static boolean showSetReminder = false;
@@ -141,8 +145,6 @@ public class NekoConfig {
     public static boolean keepFormatting = true;
     public static boolean predictiveBackAnimation = false;
     public static boolean hideBottomNavigationBar = false;
-    public static boolean bottomFilterTabs = false;
-    public static boolean strokeOnViews = true;
 
     public static boolean shouldNOTTrustMe = false;
 
@@ -237,6 +239,8 @@ public class NekoConfig {
             transcribeProvider = preferences.getInt("transcribeProvider", TRANSCRIBE_PREMIUM);
             cfAccountID = preferences.getString("cfAccountID", "");
             cfApiToken = preferences.getString("cfApiToken", "");
+            openaiApiKey = preferences.getString("openaiApiKey", "");
+            OpenAIBasicPropmpt = preferences.getString("OpenAIBasicPropmpt", "");
             preferOriginalQuality = preferences.getBoolean("preferOriginalQuality", false);
             autoInlineBot = preferences.getBoolean("autoInlineBot", false);
             forceFontWeightFallback = preferences.getBoolean("forceFontWeightFallback", false);
@@ -245,8 +249,6 @@ public class NekoConfig {
             keepFormatting = preferences.getBoolean("keepFormatting", true);
             predictiveBackAnimation = preferences.getBoolean("predictiveBackAnimation", false);
             hideBottomNavigationBar = preferences.getBoolean("hideBottomNavigationBar", false);
-            bottomFilterTabs = preferences.getBoolean("bottomFilterTabs", false);
-            strokeOnViews = preferences.getBoolean("strokeOnViews", true);
 
             LensHelper.checkLensSupportAsync();
             preferences.registerOnSharedPreferenceChangeListener(listener);
@@ -341,6 +343,22 @@ public class NekoConfig {
         editor.apply();
     }
 
+    public static void setOpenaiApiKey(String apiKey) {
+        openaiApiKey = apiKey;
+        SharedPreferences preferences = ApplicationLoader.applicationContext.getSharedPreferences("nekoconfig", Activity.MODE_PRIVATE);
+        SharedPreferences.Editor editor = preferences.edit();
+        editor.putString("openaiApiKey", openaiApiKey);
+        editor.apply();
+    }
+
+    public static void setOpenAIBasicPropmpt(String apiKey) {
+        OpenAIBasicPropmpt = apiKey;
+        SharedPreferences preferences = ApplicationLoader.applicationContext.getSharedPreferences("nekoconfig", Activity.MODE_PRIVATE);
+        SharedPreferences.Editor editor = preferences.edit();
+        editor.putString("OpenAIBasicPropmpt", OpenAIBasicPropmpt);
+        editor.apply();
+    }
+
     public static void setExternalTranslationProvider(String provider) {
         externalTranslationProvider = provider;
         SharedPreferences preferences = ApplicationLoader.applicationContext.getSharedPreferences("nekoconfig", Activity.MODE_PRIVATE);
@@ -394,22 +412,6 @@ public class NekoConfig {
         SharedPreferences preferences = ApplicationLoader.applicationContext.getSharedPreferences("nekoconfig", Activity.MODE_PRIVATE);
         SharedPreferences.Editor editor = preferences.edit();
         editor.putInt("downloadSpeedBoost2", boost);
-        editor.apply();
-    }
-
-    public static void setBottomFilterTabs(boolean bottom) {
-        bottomFilterTabs = bottom;
-        SharedPreferences preferences = ApplicationLoader.applicationContext.getSharedPreferences("nekoconfig", Activity.MODE_PRIVATE);
-        SharedPreferences.Editor editor = preferences.edit();
-        editor.putBoolean("bottomFilterTabs", bottomFilterTabs);
-        editor.apply();
-    }
-
-    public static void toggleStrokeOnViews() {
-        strokeOnViews = !strokeOnViews;
-        SharedPreferences preferences = ApplicationLoader.applicationContext.getSharedPreferences("nekoconfig", Activity.MODE_PRIVATE);
-        SharedPreferences.Editor editor = preferences.edit();
-        editor.putBoolean("strokeOnViews", strokeOnViews);
         editor.apply();
     }
 

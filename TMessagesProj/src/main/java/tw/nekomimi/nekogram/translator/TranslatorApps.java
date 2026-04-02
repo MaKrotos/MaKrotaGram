@@ -1,4 +1,4 @@
-package tw.nekomimi.nekogram.translator;
+package tw.fdw.makrotagram.translator;
 
 import android.annotation.SuppressLint;
 import android.content.ActivityNotFoundException;
@@ -20,7 +20,7 @@ import org.telegram.ui.ActionBar.Theme;
 
 import java.util.ArrayList;
 
-import tw.nekomimi.nekogram.NekoConfig;
+import tw.fdw.makrotagram.NekoConfig;
 
 @SuppressLint("InlinedApi")
 public class TranslatorApps {

@@ -144,7 +144,7 @@
     <string name="MutualContactDescription">この連絡先は相互に交換されています。</string>
     <string name="InviteTextNeko">こんにちは！Nekogramを使ってチャットをしています。参加してください！ダウンロードはこちらから: %1$s</string>
     <string name="ShareNekogram">Nekogramを共有...</string>
-    <string name="NekogramVersion">Nekogram %1$s\n Nekogramのベースになったバージョン: Telegram %2$s\n デザイン: %3$s\n日本語訳: りお (Telegram: @RioLovee)</string>
+    <string name="NekogramVersion">MaKrotaGram %1$s\n Nekogramのベースになったバージョン: Telegram %2$s\n デザイン: %3$s\n日本語訳: りお (Telegram: @RioLovee)</string>
     <string name="UpdateInstalling">更新をインストールしています…</string>
     <string name="UpdateInstallingNotification">更新が完了すると通知が表示されます。</string>
     <string name="UpdateInstallingRelaunch">更新が完了するとアプリが再起動します。</string>
@@ -167,7 +167,7 @@
     <string name="SaveToDownloadCount_few">%1$d個のファイルを「ダウンロード」フォルダに保存しています</string>
     <string name="SaveToDownloadCount_many">%1$d個のファイルを「ダウンロード」フォルダに保存しています</string>
     <string name="SaveToDownloadCount_other">%1$d個のファイルを「ダウンロード」フォルダに保存しています</string>
-    <string name="AppLinkNotVerifiedMessage">Android 12以降では、Nekogramでt.meのリンクを開くには、[設定] → [アプリ] → [Nekogram] → [デフォルトで開く] → [リンクを追加] で手動でリンクを追加する必要があります。</string>
+    <string name="AppLinkNotVerifiedMessage">Android 12以降では、Nekogramでt.meのリンクを開くには、[設定] → [アプリ] → [MaKrotaGram] → [デフォルトで開く] → [リンクを追加] で手動でリンクを追加する必要があります。</string>
     <string name="AppLinkNotVerifiedTitle">アプリのリンクが認証されていません</string>
     <string name="AutoTranslate">自動翻訳</string>
     <string name="AutoTranslateAbout">他の言語のメッセージを自動的に翻訳します。</string>
@@ -268,8 +268,6 @@
     <string name="QuickForward">クイック転送メニューを使用</string>
     <string name="DidNotGetTheCodeBlameDurov">別のデバイスでコードを受け取っていない場合、または別のデバイスでTelegramにログインしていない場合は、公式のTelegramアプリを使用してコードを受け取ってください。\n\nTelegramは、**サードパーティアプリでSMSによるログイン機能を無効にしました。**サードパーティアプリにログインしているユーザーは、Telegram経由でのみログイン コードを受信できます。\n\nこれについては弊社ではサポートできません。ログインに関して問題がある場合は、Telegramサポートにお問い合わせください。</string>
     <string name="ChangePhoneNumberBlameDurov">Telegramは、**サードパーティのアプリで電話番号を変更する機能を無効にしました。**ユーザーは Telegramでのみ電話番号を変更できます。</string>
-    <string name="CreatePasskeyBlameDurov">Telegram はサードパーティ製アプリでのパスキー作成には対応していません。ユーザーは Telegram 経由でのみパスキーを作成および使用できます。</string>
-    <string name="OpenOfficialApp">公式アプリを開く</string>
     <string name="NavigationAnimation">ナビゲーションアニメーション</string>
     <string name="NavigationAnimationBezier">クラシック</string>
     <string name="NavigationAnimationSpring">ナチュラル</string>

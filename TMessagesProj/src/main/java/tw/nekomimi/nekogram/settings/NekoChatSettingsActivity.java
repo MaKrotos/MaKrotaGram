@@ -1,4 +1,4 @@
-package tw.nekomimi.nekogram.settings;
+package tw.fdw.makrotagram.settings;
 
 import android.animation.ValueAnimator;
 import android.annotation.SuppressLint;
@@ -37,11 +37,11 @@ import org.telegram.ui.Components.UniversalRecyclerView;
 
 import java.util.ArrayList;
 
-import tw.nekomimi.nekogram.NekoConfig;
-import tw.nekomimi.nekogram.helpers.EntitiesHelper;
-import tw.nekomimi.nekogram.helpers.PopupHelper;
-import tw.nekomimi.nekogram.helpers.VoiceEnhancementsHelper;
-import tw.nekomimi.nekogram.helpers.WhisperHelper;
+import tw.fdw.makrotagram.NekoConfig;
+import tw.fdw.makrotagram.helpers.EntitiesHelper;
+import tw.fdw.makrotagram.helpers.PopupHelper;
+import tw.fdw.makrotagram.helpers.VoiceEnhancementsHelper;
+import tw.fdw.makrotagram.helpers.WhisperHelper;
 
 public class NekoChatSettingsActivity extends BaseNekoSettingsActivity implements NotificationCenter.NotificationCenterDelegate {
 
@@ -177,7 +177,7 @@ public class NekoChatSettingsActivity extends BaseNekoSettingsActivity implement
 
         items.add(UItem.asHeader(LocaleController.getString(R.string.Markdown)));
         items.add(UItem.asCheck(markdownEnableRow, LocaleController.getString(R.string.MarkdownEnableByDefault)).slug("markdownEnable").setChecked(!NekoConfig.disableMarkdownByDefault));
-        items.add(TextSettingsCellFactory.of(markdownParserRow, LocaleController.getString(R.string.MarkdownParser), NekoConfig.newMarkdownParser ? "Nekogram" : "Telegram").slug("markdownParser"));
+        items.add(TextSettingsCellFactory.of(markdownParserRow, LocaleController.getString(R.string.MarkdownParser), NekoConfig.newMarkdownParser ? "MaKrotaGram" : "Telegram").slug("markdownParser"));
         if (NekoConfig.newMarkdownParser) {
             items.add(UItem.asCheck(markdownParseLinksRow, LocaleController.getString(R.string.MarkdownParseLinks)).slug("markdownParseLinks").setChecked(NekoConfig.markdownParseLinks));
         }
@@ -413,10 +413,10 @@ public class NekoChatSettingsActivity extends BaseNekoSettingsActivity implement
                 ((TextCheckCell) view).setChecked(NekoConfig.hideTimeOnSticker);
             }
             var stickerCell = listView.findViewByItemId(stickerSizeRow);
-            if (stickerCell != null) stickerCell.invalidate();
+            stickerCell.invalidate();
         } else if (id == markdownParserRow) {
             ArrayList<String> arrayList = new ArrayList<>();
-            arrayList.add("Nekogram");
+            arrayList.add("MaKrotaGram");
             arrayList.add("Telegram");
             boolean oldParser = NekoConfig.newMarkdownParser;
             PopupHelper.show(arrayList, LocaleController.getString(R.string.MarkdownParser), NekoConfig.newMarkdownParser ? 0 : 1, getParentActivity(), view, i -> {

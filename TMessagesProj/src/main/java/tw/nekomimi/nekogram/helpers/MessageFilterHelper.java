@@ -1,4 +1,4 @@
-package tw.nekomimi.nekogram.helpers;
+package tw.fdw.makrotagram.helpers;
 
 import org.telegram.messenger.MessageObject;
 import org.telegram.messenger.MessagesController;
@@ -6,7 +6,7 @@ import org.telegram.tgnet.TLRPC;
 
 import java.util.ArrayList;
 
-import tw.nekomimi.nekogram.NekoConfig;
+import tw.fdw.makrotagram.NekoConfig;
 
 public class MessageFilterHelper {
 

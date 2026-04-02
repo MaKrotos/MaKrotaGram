@@ -1,8 +1,12 @@
-package tw.nekomimi.nekogram.settings;
+package tw.fdw.makrotagram.settings;
 
 import android.os.CountDownTimer;
+import android.text.InputType;
 import android.util.TypedValue;
+import android.view.Gravity;
 import android.view.View;
+import android.widget.EditText;
+import android.widget.ScrollView;
 import android.widget.TextView;
 
 import org.telegram.messenger.AndroidUtilities;
@@ -26,12 +30,12 @@ import org.telegram.ui.LaunchActivity;
 import java.util.ArrayList;
 import java.util.Locale;
 
-import tw.nekomimi.nekogram.Extra;
-import tw.nekomimi.nekogram.NekoConfig;
-import tw.nekomimi.nekogram.helpers.AnalyticsHelper;
-import tw.nekomimi.nekogram.helpers.PopupHelper;
-import tw.nekomimi.nekogram.helpers.SettingsHelper;
-import tw.nekomimi.nekogram.helpers.remote.UpdateHelper;
+import tw.fdw.makrotagram.Extra;
+import tw.fdw.makrotagram.NekoConfig;
+import tw.fdw.makrotagram.helpers.AnalyticsHelper;
+import tw.fdw.makrotagram.helpers.PopupHelper;
+import tw.fdw.makrotagram.helpers.SettingsHelper;
+import tw.fdw.makrotagram.helpers.remote.UpdateHelper;
 
 public class NekoExperimentalSettingsActivity extends BaseNekoSettingsActivity {
 
@@ -42,6 +46,8 @@ public class NekoExperimentalSettingsActivity extends BaseNekoSettingsActivity {
     private final int mapDriftingFixRow = rowId++;
     private final int contentRestrictionRow = rowId++;
     private final int showRPCErrorRow = rowId++;
+    private final int openaiApiKeyRow = rowId++;
+    private final int OpenAIBasicPropmpt = rowId++;
 
     private final int checkUpdateRow = rowId++;
 
@@ -71,12 +77,13 @@ public class NekoExperimentalSettingsActivity extends BaseNekoSettingsActivity {
             items.add(UItem.asCheck(contentRestrictionRow, LocaleController.getString(R.string.IgnoreContentRestriction)).slug("contentRestriction").setChecked(NekoConfig.ignoreContentRestriction));
         }
         items.add(UItem.asCheck(showRPCErrorRow, LocaleController.getString(R.string.ShowRPCError), LocaleController.formatString(R.string.ShowRPCErrorException, "FILE_REFERENCE_EXPIRED")).slug("showRPCError").setChecked(NekoConfig.showRPCError));
+        items.add(TextSettingsCellFactory.of(openaiApiKeyRow, LocaleController.getString(R.string.OpenAIAPIKey), NekoConfig.openaiApiKey.isEmpty() ? "" : "••••••••").slug("openaiApiKey"));
+        items.add(TextSettingsCellFactory.of(OpenAIBasicPropmpt, LocaleController.getString(R.string.OpenAIBasicPropmpt)).slug("OpenAIBasicPropmpt"));
+
         items.add(UItem.asShadow(null));
 
-        if (getParentActivity() instanceof LaunchActivity) {
-            items.add(TextDetailSettingsCellFactory.of(checkUpdateRow, LocaleController.getString(R.string.CheckUpdate), UpdateHelper.formatDateUpdate(SharedConfig.lastUpdateCheckTime)).slug("checkUpdate"));
-            items.add(UItem.asShadow(null));
-        }
+        items.add(TextDetailSettingsCellFactory.of(checkUpdateRow, LocaleController.getString(R.string.CheckUpdate), UpdateHelper.formatDateUpdate(SharedConfig.lastUpdateCheckTime)).slug("checkUpdate"));
+        items.add(UItem.asShadow(null));
 
         if (AnalyticsHelper.isSettingsAvailable()) {
             items.add(UItem.asHeader(LocaleController.getString(R.string.SendAnonymousData)));
@@ -190,7 +197,70 @@ public class NekoExperimentalSettingsActivity extends BaseNekoSettingsActivity {
             if (view instanceof TextCheckCell) {
                 ((TextCheckCell) view).setChecked(NekoConfig.showRPCError);
             }
-        } else if (id == downloadSpeedBoostRow) {
+        } else if (id == openaiApiKeyRow) {
+            AlertDialog.Builder builder = new AlertDialog.Builder(getParentActivity(), resourcesProvider);
+            builder.setTitle(LocaleController.getString(R.string.OpenAIAPIKey));
+            final EditText editText = new EditText(getParentActivity());
+            editText.setText(NekoConfig.openaiApiKey);
+            editText.setHint("sk-...");
+            builder.setView(editText);
+            builder.setPositiveButton(LocaleController.getString(R.string.OK), (dialog, which) -> {
+                String key = editText.getText().toString().trim();
+                NekoConfig.setOpenaiApiKey(key);
+                item.textValue = key.isEmpty() ? "" : "••••••••";
+                listView.adapter.notifyItemChanged(position, PARTIAL);
+            });
+            builder.setNegativeButton(LocaleController.getString(R.string.Cancel), null);
+            builder.show();
+
+        }
+        else if (id == OpenAIBasicPropmpt)
+        {
+            AlertDialog.Builder builder = new AlertDialog.Builder(getParentActivity(), resourcesProvider);
+            builder.setTitle(LocaleController.getString(R.string.OpenAIBasicPropmpt));
+
+            final EditText editText = new EditText(getParentActivity());
+            editText.setText(NekoConfig.OpenAIBasicPropmpt);
+
+
+            // Делаем поле большим и многострочным
+            editText.setGravity(Gravity.TOP | Gravity.START);
+            editText.setLines(8);
+            editText.setMaxLines(15);
+            editText.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE);
+            editText.setHorizontallyScrolling(false);
+            editText.setVerticalScrollBarEnabled(true);
+
+            // Добавляем отступы для лучшего вида
+            int padding = AndroidUtilities.dp(16);
+            editText.setPadding(padding, padding, padding, padding);
+
+            // Создаем контейнер с прокруткой для EditText
+            ScrollView scrollView = new ScrollView(getParentActivity());
+            scrollView.addView(editText);
+
+            builder.setView(scrollView);
+
+            builder.setPositiveButton(LocaleController.getString(R.string.OK), (dialog, which) -> {
+                String text = editText.getText().toString().trim();
+                NekoConfig.setOpenAIBasicPropmpt(text);
+
+                // Обновляем отображаемое значение в настройках
+                if (text.isEmpty()) {
+                    item.textValue = LocaleController.getString(R.string.OpenAIBasicPropmpt);
+                } else {
+                    // Показываем первые 50 символов с многоточием
+                    String shortText = text.length() > 50 ? text.substring(0, 50) + "…" : text;
+                    item.textValue = shortText;
+                }
+
+                listView.adapter.notifyItemChanged(position, PARTIAL);
+            });
+
+            builder.setNegativeButton(LocaleController.getString(R.string.Cancel), null);
+            builder.show();
+        }
+        else if (id == downloadSpeedBoostRow) {
             ArrayList<String> arrayList = new ArrayList<>();
             ArrayList<Integer> types = new ArrayList<>();
             arrayList.add(LocaleController.getString(R.string.DownloadSpeedBoostNone));
@@ -257,17 +327,15 @@ public class NekoExperimentalSettingsActivity extends BaseNekoSettingsActivity {
                 ((TextCheckCell) view).setChecked(NekoConfig.keepFormatting);
             }
         } else if (id == checkUpdateRow) {
-            if (getParentActivity() instanceof LaunchActivity launchActivity) {
-                launchActivity.checkAppUpdate(true, new Browser.Progress() {
-                    @Override
-                    public void end() {
-                        item.subtext = UpdateHelper.formatDateUpdate(SharedConfig.lastUpdateCheckTime);
-                        listView.adapter.notifyItemChanged(position);
-                    }
-                });
-                item.subtext = LocaleController.getString(R.string.CheckingUpdate);
-                listView.adapter.notifyItemChanged(position);
-            }
+            ((LaunchActivity) getParentActivity()).checkAppUpdate(true, new Browser.Progress() {
+                @Override
+                public void end() {
+                    item.subtext = UpdateHelper.formatDateUpdate(SharedConfig.lastUpdateCheckTime);
+                    listView.adapter.notifyItemChanged(position);
+                }
+            });
+            item.subtext = LocaleController.getString(R.string.CheckingUpdate);
+            listView.adapter.notifyItemChanged(position);
         }
     }
 

@@ -1,4 +1,4 @@
-package tw.nekomimi.nekogram.forward;
+package tw.fdw.makrotagram.forward;
 
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -15,7 +15,7 @@ import org.telegram.ui.ActionBar.Theme;
 import java.util.Arrays;
 import java.util.Collection;
 
-import tw.nekomimi.nekogram.NekoConfig;
+import tw.fdw.makrotagram.NekoConfig;
 
 public class ForwardItem {
     public static final int ID_FORWARD = -100;

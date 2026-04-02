@@ -1,4 +1,4 @@
-package tw.nekomimi.nekogram.settings;
+package tw.fdw.makrotagram.settings;
 
 import android.text.TextUtils;
 import android.view.View;
@@ -6,6 +6,7 @@ import android.view.View;
 import androidx.core.text.HtmlCompat;
 
 import org.telegram.messenger.LocaleController;
+import org.telegram.messenger.NotificationCenter;
 import org.telegram.messenger.R;
 import org.telegram.messenger.UserConfig;
 import org.telegram.tgnet.ConnectionsManager;
@@ -16,10 +17,10 @@ import org.telegram.ui.Components.UniversalAdapter;
 import java.util.ArrayList;
 import java.util.Locale;
 
-import tw.nekomimi.nekogram.NekoConfig;
-import tw.nekomimi.nekogram.helpers.PopupHelper;
-import tw.nekomimi.nekogram.translator.Translator;
-import tw.nekomimi.nekogram.translator.TranslatorApps;
+import tw.fdw.makrotagram.NekoConfig;
+import tw.fdw.makrotagram.helpers.PopupHelper;
+import tw.fdw.makrotagram.translator.Translator;
+import tw.fdw.makrotagram.translator.TranslatorApps;
 
 public class NekoGeneralSettingsActivity extends BaseNekoSettingsActivity {
 
@@ -36,12 +37,12 @@ public class NekoGeneralSettingsActivity extends BaseNekoSettingsActivity {
     private final int accentAsNotificationColorRow = rowId++;
     private final int silenceNonContactsRow = rowId++;
 
-    private final int nameOrderRow = rowId++;
-    private final int idTypeRow = rowId++;
-
+    private final int hideStoriesRow = rowId++;
     private final int disabledInstantCameraRow = rowId++;
     private final int askBeforeCallRow = rowId++;
     private final int openArchiveOnPullRow = rowId++;
+    private final int nameOrderRow = rowId++;
+    private final int idTypeRow = rowId++;
 
     private CharSequence getTranslationProvider() {
         var providers = Translator.getProviders();
@@ -130,7 +131,11 @@ public class NekoGeneralSettingsActivity extends BaseNekoSettingsActivity {
         items.add(UItem.asCheck(silenceNonContactsRow, LocaleController.getString(R.string.SilenceNonContacts)).slug("silenceNonContacts").setChecked(NekoConfig.silenceNonContacts));
         items.add(UItem.asShadow(LocaleController.getString(R.string.SilenceNonContactsAbout)));
 
-        items.add(UItem.asHeader(LocaleController.getString(R.string.UserColorTabProfile)));
+        items.add(UItem.asHeader(LocaleController.getString(R.string.General)));
+        items.add(UItem.asCheck(hideStoriesRow, LocaleController.getString(R.string.HideStories)).slug("hideStories").setChecked(NekoConfig.hideStories));
+        items.add(UItem.asCheck(disabledInstantCameraRow, LocaleController.getString(R.string.DisableInstantCamera)).slug("disabledInstantCamera").setChecked(NekoConfig.disableInstantCamera));
+        items.add(UItem.asCheck(askBeforeCallRow, LocaleController.getString(R.string.AskBeforeCalling)).slug("askBeforeCall").setChecked(NekoConfig.askBeforeCall));
+        items.add(UItem.asCheck(openArchiveOnPullRow, LocaleController.getString(R.string.OpenArchiveOnPull)).slug("openArchiveOnPull").setChecked(NekoConfig.openArchiveOnPull));
         items.add(TextSettingsCellFactory.of(nameOrderRow, LocaleController.getString(R.string.NameOrder), switch (NekoConfig.nameOrder) {
             case 2 -> LocaleController.getString(R.string.LastFirst);
             default -> LocaleController.getString(R.string.FirstLast);
@@ -141,12 +146,6 @@ public class NekoGeneralSettingsActivity extends BaseNekoSettingsActivity {
             default -> LocaleController.getString(R.string.IdTypeAPI);
         }).slug("idType"));
         items.add(UItem.asShadow(LocaleController.getString(R.string.IdTypeAbout)));
-
-        items.add(UItem.asHeader(LocaleController.getString(R.string.General)));
-        items.add(UItem.asCheck(disabledInstantCameraRow, LocaleController.getString(R.string.DisableInstantCamera)).slug("disabledInstantCamera").setChecked(NekoConfig.disableInstantCamera));
-        items.add(UItem.asCheck(askBeforeCallRow, LocaleController.getString(R.string.AskBeforeCalling)).slug("askBeforeCall").setChecked(NekoConfig.askBeforeCall));
-        items.add(UItem.asCheck(openArchiveOnPullRow, LocaleController.getString(R.string.OpenArchiveOnPull)).slug("openArchiveOnPull").setChecked(NekoConfig.openArchiveOnPull));
-        items.add(UItem.asShadow(null));
     }
 
     @Override
@@ -273,6 +272,12 @@ public class NekoGeneralSettingsActivity extends BaseNekoSettingsActivity {
             if (view instanceof TextCheckCell) {
                 ((TextCheckCell) view).setChecked(NekoConfig.showOriginal);
             }
+        } else if (id == hideStoriesRow) {
+            NekoConfig.toggleHideStories();
+            if (view instanceof TextCheckCell) {
+                ((TextCheckCell) view).setChecked(NekoConfig.hideStories);
+            }
+            getNotificationCenter().postNotificationName(NotificationCenter.storiesEnabledUpdate);
         } else if (id == translatorExternalAppRow) {
             Translator.showTranslationProviderSelector(getParentActivity(), view, param -> {
                 item.textValue = getTranslatorExternalApp();

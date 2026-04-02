@@ -1,4 +1,4 @@
-package tw.nekomimi.nekogram;
+package tw.fdw.makrotagram;
 
 import android.content.Context;
 import android.content.Intent;
@@ -39,10 +39,10 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.Locale;
 
-import tw.nekomimi.nekogram.helpers.MessageHelper;
-import tw.nekomimi.nekogram.helpers.UserHelper;
-import tw.nekomimi.nekogram.helpers.WebAppHelper;
-import tw.nekomimi.nekogram.settings.BaseNekoSettingsActivity;
+import tw.fdw.makrotagram.helpers.MessageHelper;
+import tw.fdw.makrotagram.helpers.UserHelper;
+import tw.fdw.makrotagram.helpers.WebAppHelper;
+import tw.fdw.makrotagram.settings.BaseNekoSettingsActivity;
 
 public class MessageDetailsActivity extends BaseNekoSettingsActivity implements NotificationCenter.NotificationCenterDelegate {
 

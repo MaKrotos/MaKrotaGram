@@ -1,4 +1,4 @@
-package tw.nekomimi.nekogram.helpers;
+package tw.fdw.makrotagram.helpers;
 
 import com.google.gson.Gson;
 
@@ -11,7 +11,7 @@ import org.telegram.tgnet.tl.TL_bots;
 
 import java.util.HashMap;
 
-import tw.nekomimi.nekogram.Extra;
+import tw.fdw.makrotagram.Extra;
 
 public class CloudStorageHelper extends AccountInstance {
 

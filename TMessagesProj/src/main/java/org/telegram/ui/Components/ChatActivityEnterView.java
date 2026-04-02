@@ -213,7 +213,7 @@ import java.util.Locale;
 
 import me.vkryl.android.animator.BoolAnimator;
 import me.vkryl.android.animator.FactorAnimator;
-import tw.nekomimi.nekogram.NekoConfig;
+import tw.fdw.makrotagram.NekoConfig;
 
 public class ChatActivityEnterView extends FrameLayout implements
     NotificationCenter.NotificationCenterDelegate,
@@ -13534,8 +13534,6 @@ public class ChatActivityEnterView extends FrameLayout implements
                 left = x + staticLayout.getLineWidth(0);
             }
 
-            setContentDescription(LocaleController.formatDuration((int) time));
-
             oldString = newString;
 
             if (isRunning || replaceTransition != 0) {
@@ -14297,7 +14295,7 @@ public class ChatActivityEnterView extends FrameLayout implements
             if (getAlpha() <= 0f) { // for accessibility
                 return false;
             }
-            if (event.getAction() == MotionEvent.ACTION_DOWN && (event.getX() < getWidth() - width() || event.getY() < getHeight() - height()) && !isAccessibilityFocused()) {
+            if (event.getAction() == MotionEvent.ACTION_DOWN && (event.getX() < getWidth() - width() || event.getY() < getHeight() - height())) {
                 return false;
             }
             return super.onTouchEvent(event);

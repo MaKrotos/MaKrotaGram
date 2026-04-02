@@ -1,4 +1,4 @@
-package tw.nekomimi.nekogram.translator;
+package tw.fdw.makrotagram.translator;
 
 import org.telegram.tgnet.TLRPC;
 import org.telegram.ui.Components.TranslateAlert2;
@@ -16,8 +16,8 @@ import app.nekogram.translator.SogouTranslator;
 import app.nekogram.translator.TranSmartTranslator;
 import app.nekogram.translator.YandexTranslator;
 import app.nekogram.translator.YouDaoTranslator;
-import tw.nekomimi.nekogram.NekoConfig;
-import tw.nekomimi.nekogram.translator.html.HTMLKeeper;
+import tw.fdw.makrotagram.NekoConfig;
+import tw.fdw.makrotagram.translator.html.HTMLKeeper;
 
 public class TextWithEntitiesTranslator implements Translator.ITranslator {
 

@@ -1,4 +1,4 @@
-package tw.nekomimi.nekogram.forward;
+package tw.fdw.makrotagram.forward;
 
 import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.MessageObject;

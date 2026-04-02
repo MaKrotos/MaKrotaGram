@@ -168,8 +168,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
-import tw.nekomimi.nekogram.Extra;
-import tw.nekomimi.nekogram.helpers.PasscodeHelper;
+import tw.fdw.makrotagram.Extra;
+import tw.fdw.makrotagram.helpers.PasscodeHelper;
 import me.vkryl.core.BitwiseUtils;
 
 public class AlertsCreator {
@@ -3383,7 +3383,7 @@ public class AlertsCreator {
             builder.setMessage(replaceTags(LocaleController.formatString("BlockUsersMessage", R.string.BlockUsersMessage, LocaleController.formatPluralString("UsersCount", count))));
         }
 
-        final boolean[] checks = new boolean[]{true, reportSpam};
+        final boolean[] checks = new boolean[]{true, true};
 
         for (int a = 0; a < cell.length; a++) {
             if (a == 0 && !reportSpam) {
@@ -3395,7 +3395,7 @@ public class AlertsCreator {
             if (a == 0) {
                 cell[a].setText(LocaleController.getString(R.string.ReportSpamTitle), "", true, false);
             } else {
-                cell[a].setText(count == 1 ? LocaleController.getString(R.string.DeleteThisChatBothSides) : LocaleController.getString(R.string.DeleteTheseChatsBothSides), "", reportSpam, false);
+                cell[a].setText(count == 1 ? LocaleController.getString(R.string.DeleteThisChatBothSides) : LocaleController.getString(R.string.DeleteTheseChatsBothSides), "", true, false);
             }
             cell[a].setPadding(LocaleController.isRTL ? dp(16) : dp(8), 0, LocaleController.isRTL ? dp(8) : dp(16), 0);
             linearLayout.addView(cell[a], LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 48));

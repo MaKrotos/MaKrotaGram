@@ -115,11 +115,11 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import tw.nekomimi.nekogram.NekoConfig;
-import tw.nekomimi.nekogram.helpers.MessageFilterHelper;
-import tw.nekomimi.nekogram.helpers.MessageHelper;
-import tw.nekomimi.nekogram.syntaxhighlight.SyntaxHighlight;
-import tw.nekomimi.nekogram.translator.Translator;
+import tw.fdw.makrotagram.NekoConfig;
+import tw.fdw.makrotagram.helpers.MessageFilterHelper;
+import tw.fdw.makrotagram.helpers.MessageHelper;
+import tw.fdw.makrotagram.syntaxhighlight.SyntaxHighlight;
+import tw.fdw.makrotagram.translator.Translator;
 
 import me.vkryl.core.BitwiseUtils;
 

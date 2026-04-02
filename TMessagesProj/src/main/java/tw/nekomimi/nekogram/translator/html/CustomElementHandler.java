@@ -6,7 +6,7 @@
  * Copyright OctoGram, 2023-2025.
  */
 
-package tw.nekomimi.nekogram.translator.html;
+package tw.fdw.makrotagram.translator.html;
 
 import android.text.Editable;
 import android.text.Spannable;

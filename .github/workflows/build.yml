@@ -1,0 +1,129 @@
+name: Build MaKrotaGram
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: 21
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Decode keystore
+        run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > $HOME/keystore
+
+      - name: Setup Google Services
+        run: |
+          # Список модулей, куда нужно положить файл
+          modules=("TMessagesProj" "TMessagesProj_App")
+
+          # Декодируем один раз
+          echo "${{ secrets.GOOGLE_SERVICES_BASE64 }}" | base64 --decode > /tmp/google-services.json
+
+          # Копируем во все модули
+          for module in "${modules[@]}"; do
+            if [ -d "$module" ] || [ "$module" == "TMessagesProj_App" ]; then
+              mkdir -p "$module"
+              cp /tmp/google-services.json "$module/google-services.json"
+              echo "✅ Добавлено в $module/"
+            fi
+          done
+
+          rm /tmp/google-services.json
+
+      - name: Create Extra.java
+        run: |
+          # Создаем директорию, если её нет
+          mkdir -p TMessagesProj/src/main/java/tw/nekomimi/nekogram
+
+          # Декодируем и сохраняем файл
+          echo "${{ secrets.EXTRA_JAVA_BASE64 }}" | base64 --decode > TMessagesProj/src/main/java/tw/nekomimi/nekogram/Extra.java
+
+          # Проверяем, что файл создан
+          if [ -f "TMessagesProj/src/main/java/tw/nekomimi/nekogram/Extra.java" ]; then
+            echo "✅ Extra.java успешно создан"
+          else
+            echo "❌ Ошибка: Extra.java не был создан"
+            exit 1
+          fi
+
+      - name: Configure local.properties
+        run: |
+          # Создаем local.properties с отключением Sentry
+          cat > local.properties << EOF
+          sdk.dir=$ANDROID_HOME
+          sentry.disabled=true
+          sentry.skipUpload=true
+          sentry.autoUploadProguardMapping=false
+          sentry.uploadNativeSymbols=false
+          sentry.includeSourceContext=false
+          EOF
+          echo "✅ local.properties создан с настройками:"
+          cat local.properties
+
+      - name: Build APK
+        run: ./gradlew assembleRelease
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          # Дополнительная страховка через переменные окружения
+          SENTRY_DISABLE_AUTO_UPLOAD: true
+          SENTRY_SKIP_UPLOAD: true
+
+      - name: Prepare APK for release
+        run: |
+          # Создаем директорию для готового APK
+          mkdir -p release
+
+          # Копируем APK из правильного модуля и даем красивое имя
+          cp TMessagesProj_App/build/outputs/apk/release/*.apk release/NekiGram.apk
+
+          echo "✅ APK готов: release/NekiGram.apk"
+
+          # Показываем размер файла
+          ls -lh release/
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: NekiGram
+          path: release/NekiGram.apk
+          retention-days: 30
+
+      - name: Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: release/NekiGram.apk
+          name: NekiGram ${{ github.ref_name }}
+          body: |
+            ## NekiGram ${{ github.ref_name }}
+
+            ### 📱 Сборка от $(date +'%d.%m.%Y')
+
+            ### 📥 Установка:
+            Скачайте NekiGram.apk и установите на устройство
+
+            ### 🔒 Проверка подписи:
+            APK подписан релизным ключом
+
+            ### 📊 Информация:
+            - Размер: $(du -h release/NekiGram.apk | cut -f1)
+            - Дата сборки: $(date +'%d.%m.%Y %H:%M')
+
+          draft: false
+          prerelease: false

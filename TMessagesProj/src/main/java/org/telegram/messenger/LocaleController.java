@@ -58,7 +58,7 @@ import java.util.HashSet;
 import java.util.Locale;
 import java.util.TimeZone;
 
-import tw.nekomimi.nekogram.NekoConfig;
+import tw.fdw.makrotagram.NekoConfig;
 
 public class LocaleController {
 
@@ -1433,7 +1433,7 @@ public class LocaleController {
     private String getStringInternal(String key, String fallback, int fallbackRes, int res) {
         if (key.equals("AppName")) {
             try {
-                return ApplicationLoader.applicationContext.getString(R.string.Nekogram);
+                return ApplicationLoader.applicationContext.getString(R.string.MaKrotaGram);
             } catch (Exception e) {
                 FileLog.e(e);
             }

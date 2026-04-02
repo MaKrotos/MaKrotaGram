@@ -130,7 +130,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
-import tw.nekomimi.nekogram.NekoConfig;
+import tw.fdw.makrotagram.NekoConfig;
 
 public class MessagesController extends BaseController implements NotificationCenter.NotificationCenterDelegate {
 
@@ -7423,7 +7423,6 @@ public class MessagesController extends BaseController implements NotificationCe
                 }
             }
         }
-        if (array == null) return false;
         final TLRPC.ChannelParticipant participant = array.get(uid);
         return participant instanceof TLRPC.TL_channelParticipantAdmin || participant instanceof TLRPC.TL_channelParticipantCreator;
     }
@@ -7444,7 +7443,6 @@ public class MessagesController extends BaseController implements NotificationCe
                 }
             }
         }
-        if (array == null) return false;
         final TLRPC.ChannelParticipant participant = array.get(uid);
         return participant instanceof TLRPC.TL_channelParticipantCreator;
     }
@@ -12143,7 +12141,7 @@ public class MessagesController extends BaseController implements NotificationCe
                                 editor.putInt("EnableChannel2", notify_settings.mute_until);
                             }
                         }
-                        getNotificationsController().getNotificationsSettingsFacade().applySoundSettings(notify_settings.other_sound, editor, 0, 0, type, false);
+                        getNotificationsController().getNotificationsSettingsFacade().applySoundSettings(notify_settings.android_sound, editor, 0, 0, type, false);
                         editor.apply();
                         if (loadingNotificationSettings == 0) {
                             getUserConfig().notificationsSettingsLoaded = true;
@@ -19194,7 +19192,7 @@ public class MessagesController extends BaseController implements NotificationCe
                                         AndroidUtilities.runOnUIThread(() -> getNotificationsController().deleteNotificationChannelGlobal(NotificationsController.TYPE_GROUP));
                                     }
                                 }
-                                getNotificationsController().getNotificationsSettingsFacade().applySoundSettings(update.notify_settings.other_sound, editor, 0, 0, NotificationsController.TYPE_GROUP, false);
+                                getNotificationsController().getNotificationsSettingsFacade().applySoundSettings(update.notify_settings.android_sound, editor, 0, 0, NotificationsController.TYPE_GROUP, false);
                             } else if (update.peer instanceof TLRPC.TL_notifyUsers) {
                                 if ((update.notify_settings.flags & 1) != 0) {
                                     editor.putBoolean("EnablePreviewAll", update.notify_settings.show_previews);
@@ -19226,7 +19224,7 @@ public class MessagesController extends BaseController implements NotificationCe
                                     storiesEnabled != null && storiesEnabled != newStoriesEnabled || storiesSendersHide != null && storiesSendersHide != newStoriesSendersHide) {
                                     editor.putBoolean("overwrite_stories", true);
                                 }
-                                getNotificationsController().getNotificationsSettingsFacade().applySoundSettings(update.notify_settings.other_sound, editor, 0, 0, TYPE_PRIVATE, false);
+                                getNotificationsController().getNotificationsSettingsFacade().applySoundSettings(update.notify_settings.android_sound, editor, 0, 0, TYPE_PRIVATE, false);
                                 if ((update.notify_settings.flags & 4) != 0) {
                                     if (notificationsPreferences.getInt("EnableAll2", 0) != update.notify_settings.mute_until) {
                                         editor.putInt("EnableAll2", update.notify_settings.mute_until);
@@ -19252,7 +19250,7 @@ public class MessagesController extends BaseController implements NotificationCe
                                         AndroidUtilities.runOnUIThread(() -> getNotificationsController().deleteNotificationChannelGlobal(NotificationsController.TYPE_CHANNEL));
                                     }
                                 }
-                                getNotificationsController().getNotificationsSettingsFacade().applySoundSettings(update.notify_settings.other_sound, editor, 0, 0, TYPE_CHANNEL, false);
+                                getNotificationsController().getNotificationsSettingsFacade().applySoundSettings(update.notify_settings.android_sound, editor, 0, 0, TYPE_CHANNEL, false);
                             }
                             getMessagesStorage().updateMutedDialogsFiltersCounters();
                         }

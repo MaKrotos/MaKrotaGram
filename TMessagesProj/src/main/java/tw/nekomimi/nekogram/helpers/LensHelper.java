@@ -1,4 +1,4 @@
-package tw.nekomimi.nekogram.helpers;
+package tw.fdw.makrotagram.helpers;
 
 import android.app.Activity;
 import android.content.ActivityNotFoundException;

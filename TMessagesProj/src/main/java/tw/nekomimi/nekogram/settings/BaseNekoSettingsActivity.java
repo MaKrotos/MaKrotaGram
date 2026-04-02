@@ -1,4 +1,4 @@
-package tw.nekomimi.nekogram.settings;
+package tw.fdw.makrotagram.settings;
 
 import android.animation.ValueAnimator;
 import android.content.Context;
@@ -379,7 +379,6 @@ public abstract class BaseNekoSettingsActivity extends BaseFragment {
     }
 
     public void scrollToRow(String key, Runnable unknown) {
-        if (listView == null) return;
         var position = listView.findPositionByItemSlug(key);
         if (position != -1) {
             listView.highlightRow(() -> {

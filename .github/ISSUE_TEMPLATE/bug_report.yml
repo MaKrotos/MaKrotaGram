@@ -32,7 +32,7 @@ body:
       required: true
   - type: input
     attributes:
-      label: Nekogram version
+      label: MaKrotaGram version
     validations:
       required: true
   - type: input
@@ -45,5 +45,5 @@ body:
     attributes:
       label: Reproducible requirement
       options:
-        - label: I've test on official Telegram Android client and this bug is only reproducible on Nekogram.
+        - label: I've test on official Telegram Android client and this bug is only reproducible on MaKrotaGram.
           required: true

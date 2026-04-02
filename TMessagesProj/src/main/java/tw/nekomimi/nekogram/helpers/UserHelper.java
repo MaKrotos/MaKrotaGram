@@ -1,4 +1,4 @@
-package tw.nekomimi.nekogram.helpers;
+package tw.fdw.makrotagram.helpers;
 
 import android.app.Activity;
 import android.os.Bundle;
@@ -19,7 +19,7 @@ import org.telegram.ui.TopicsFragment;
 import java.util.Locale;
 import java.util.function.Consumer;
 
-import tw.nekomimi.nekogram.Extra;
+import tw.fdw.makrotagram.Extra;
 
 public class UserHelper extends BaseController {
 
@@ -136,8 +136,6 @@ public class UserHelper extends BaseController {
                 callback.accept(parsedPeer.toUser());
             } else if (!fallback) {
                 searchUser(userId, callback, fakeUser, true);
-            } else if (fakeUser != null) {
-                callback.accept(fakeUser.toUser());
             } else {
                 callback.accept(null);
             }
@@ -153,8 +151,6 @@ public class UserHelper extends BaseController {
                 callback.accept(parsedPeer.toChat());
             } else if (!fallback) {
                 searchChat(chatId, callback, fakeChat, true);
-            } else if (fakeChat != null) {
-                callback.accept(fakeChat.toChat());
             } else {
                 callback.accept(null);
             }
@@ -183,12 +179,7 @@ public class UserHelper extends BaseController {
                 return;
             }
             if (peer.username != null) {
-                resolvePeer(peer.username, resolved -> {
-                    if (!resolved) {
-                        peer.username = null;
-                    }
-                    callback.accept(peer);
-                });
+                resolvePeer(peer.username, resolved -> callback.accept(peer));
             } else {
                 callback.accept(peer);
             }

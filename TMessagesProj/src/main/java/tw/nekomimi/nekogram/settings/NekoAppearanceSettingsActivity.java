@@ -1,4 +1,4 @@
-package tw.nekomimi.nekogram.settings;
+package tw.fdw.makrotagram.settings;
 
 import android.content.Context;
 import android.view.View;
@@ -17,28 +17,24 @@ import org.telegram.ui.LaunchActivity;
 
 import java.util.ArrayList;
 
-import tw.nekomimi.nekogram.NekoConfig;
-import tw.nekomimi.nekogram.helpers.EmojiHelper;
-import tw.nekomimi.nekogram.helpers.PopupHelper;
+import tw.fdw.makrotagram.NekoConfig;
+import tw.fdw.makrotagram.helpers.EmojiHelper;
+import tw.fdw.makrotagram.helpers.PopupHelper;
 
 public class NekoAppearanceSettingsActivity extends BaseNekoSettingsActivity implements NotificationCenter.NotificationCenterDelegate {
 
     private final int emojiSetsRow = rowId++;
+    private final int mediaPreviewRow = rowId++;
     private final int predictiveBackAnimationRow = rowId++;
     private final int appBarShadowRow = rowId++;
     private final int formatTimeWithSecondsRow = rowId++;
     private final int disableNumberRoundingRow = rowId++;
     private final int hideBottomNavigationBarRow = rowId++;
     private final int tabletModeRow = rowId++;
-
-    private final int hideStoriesRow = rowId++;
-    private final int mediaPreviewRow = rowId++;
+    private final int eventTypeRow = rowId++;
 
     private final int hideAllTabRow = rowId++;
     private final int tabsTitleTypeRow = rowId++;
-    private final int tabsPositionRow = rowId++;
-
-    private final int strokeOnViewsRow = rowId++;
 
     @Override
     public boolean onFragmentCreate() {
@@ -63,6 +59,7 @@ public class NekoAppearanceSettingsActivity extends BaseNekoSettingsActivity imp
     protected void fillItems(ArrayList<UItem> items, UniversalAdapter adapter) {
         items.add(UItem.asHeader(LocaleController.getString(R.string.ChangeChannelNameColor2)));
         items.add(EmojiSetCellFactory.of(emojiSetsRow, LocaleController.getString(R.string.EmojiSets)).slug("emojiSets"));
+        items.add(UItem.asCheck(mediaPreviewRow, LocaleController.getString(R.string.MediaPreview)).slug("mediaPreview").setChecked(NekoConfig.mediaPreview));
         items.add(UItem.asCheck(predictiveBackAnimationRow, LocaleController.getString(R.string.PredictiveBackAnimation)).slug("predictiveBackAnimation").setChecked(NekoConfig.predictiveBackAnimation));
         items.add(UItem.asCheck(appBarShadowRow, LocaleController.getString(R.string.DisableAppBarShadow)).slug("appBarShadow").setChecked(NekoConfig.disableAppBarShadow));
         items.add(UItem.asCheck(formatTimeWithSecondsRow, LocaleController.getString(R.string.FormatWithSeconds)).slug("formatTimeWithSeconds").setChecked(NekoConfig.formatTimeWithSeconds));
@@ -75,11 +72,6 @@ public class NekoAppearanceSettingsActivity extends BaseNekoSettingsActivity imp
         }).slug("tabletMode"));
         items.add(UItem.asShadow(null));
 
-        items.add(UItem.asHeader(LocaleController.getString(R.string.SavedDialogsTab)));
-        items.add(UItem.asCheck(hideStoriesRow, LocaleController.getString(R.string.HideStories)).slug("hideStories").setChecked(NekoConfig.hideStories));
-        items.add(UItem.asCheck(mediaPreviewRow, LocaleController.getString(R.string.MediaPreview)).slug("mediaPreview").setChecked(NekoConfig.mediaPreview));
-        items.add(UItem.asShadow(null));
-
         items.add(UItem.asHeader(LocaleController.getString(R.string.Filters)));
         items.add(UItem.asCheck(hideAllTabRow, LocaleController.getString(R.string.HideAllTab)).slug("hideAllTab").setChecked(NekoConfig.hideAllTab));
         items.add(TextSettingsCellFactory.of(tabsTitleTypeRow, LocaleController.getString(R.string.TabTitleType), switch (NekoConfig.tabsTitleType) {
@@ -89,13 +81,7 @@ public class NekoAppearanceSettingsActivity extends BaseNekoSettingsActivity imp
                     LocaleController.getString(R.string.TabTitleTypeIcon);
             default -> LocaleController.getString(R.string.TabTitleTypeMix);
         }).slug("tabsTitleType"));
-        items.add(TextSettingsCellFactory.of(tabsPositionRow, LocaleController.getString(R.string.TabsPosition), LocaleController.getString(NekoConfig.bottomFilterTabs ? R.string.TabsPositionBottom : R.string.TabsPositionTop)).slug("tabsPosition"));
         items.add(UItem.asShadow(null));
-
-        items.add(UItem.asHeader(LocaleController.getString(R.string.LiteOptionsBlur2)));
-        items.add(UItem.asCheck(strokeOnViewsRow, LocaleController.getString(R.string.StrokeOnViews)).setChecked(NekoConfig.strokeOnViews).slug("strokeOnViews"));
-        items.add(UItem.asShadow(null));
-
     }
 
     @Override
@@ -138,12 +124,6 @@ public class NekoAppearanceSettingsActivity extends BaseNekoSettingsActivity imp
             if (view instanceof TextCheckCell) {
                 ((TextCheckCell) view).setChecked(NekoConfig.mediaPreview);
             }
-        } else if (id == hideStoriesRow) {
-            NekoConfig.toggleHideStories();
-            if (view instanceof TextCheckCell) {
-                ((TextCheckCell) view).setChecked(NekoConfig.hideStories);
-            }
-            getNotificationCenter().postNotificationName(NotificationCenter.storiesEnabledUpdate);
         } else if (id == formatTimeWithSecondsRow) {
             NekoConfig.toggleFormatTimeWithSeconds();
             if (view instanceof TextCheckCell) {
@@ -184,21 +164,6 @@ public class NekoAppearanceSettingsActivity extends BaseNekoSettingsActivity imp
                 ((TextCheckCell) view).setChecked(NekoConfig.hideBottomNavigationBar);
             }
             parentLayout.rebuildAllFragmentViews(false, false);
-        } else if (id == tabsPositionRow) {
-            ArrayList<String> arrayList = new ArrayList<>();
-            arrayList.add(LocaleController.getString(R.string.TabsPositionTop));
-            arrayList.add(LocaleController.getString(R.string.TabsPositionBottom));
-            PopupHelper.show(arrayList, LocaleController.getString(R.string.TabsPosition), NekoConfig.bottomFilterTabs ? 1 : 0, getParentActivity(), view, i -> {
-                NekoConfig.setBottomFilterTabs(i == 1);
-                item.textValue = arrayList.get(i);
-                listView.adapter.notifyItemChanged(position, PARTIAL);
-                parentLayout.rebuildAllFragmentViews(false, false);
-            }, resourcesProvider);
-        } else if (id == strokeOnViewsRow) {
-            NekoConfig.toggleStrokeOnViews();
-            if (view instanceof TextCheckCell) {
-                ((TextCheckCell) view).setChecked(NekoConfig.strokeOnViews);
-            }
         }
     }
 

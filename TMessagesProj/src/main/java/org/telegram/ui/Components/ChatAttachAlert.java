@@ -2599,7 +2599,6 @@ public class ChatAttachAlert extends BottomSheet implements NotificationCenter.N
                 bottomFadeDrawable.draw(canvas);
             }
         };
-        bottomFadeView.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
         bottomFadeDrawable = new BlurredBackgroundWithFadeDrawable(
                 iBlur3FactoryFade.create(bottomFadeView, null));
         if (!SharedConfig.chatBlurEnabled() || LiteMode.isEnabled(LiteMode.FLAG_LIQUID_GLASS) || true) {

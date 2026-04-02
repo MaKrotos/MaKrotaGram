@@ -1,17 +1,14 @@
-package tw.nekomimi.nekogram.helpers;
+package tw.fdw.makrotagram.helpers;
 
-import org.telegram.messenger.FileLog;
 import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.R;
 import org.telegram.messenger.UserConfig;
-import org.telegram.tgnet.TLRPC;
 
-import java.util.Calendar;
 import java.util.HashMap;
 import java.util.function.BiConsumer;
 
-import tw.nekomimi.nekogram.Extra;
-import tw.nekomimi.nekogram.helpers.remote.BaseRemoteHelper;
+import tw.fdw.makrotagram.Extra;
+import tw.fdw.makrotagram.helpers.remote.BaseRemoteHelper;
 
 public class RegDateHelper {
     private static final HashMap<Long, Integer> regDates = new HashMap<>();
@@ -46,24 +43,5 @@ public class RegDateHelper {
             regDates.put(userId, date);
             callback.accept(date, null);
         });
-    }
-
-    public static void setRegDate(long dialogId, TLRPC.PeerSettings settings) {
-        if (settings == null || settings.registration_month == null) {
-            return;
-        }
-        InlineBotHelper.getInstance(UserConfig.selectedAccount).query(Extra.getHelperBot(), String.format("set_regdate %s %s %s %s", dialogId, settings.registration_month, settings.phone_country, BaseRemoteHelper.getRequestExtra()), (results, error) -> {
-            if (error != null) {
-                FileLog.e("Failed to set reg date: " + error);
-            }
-        });
-        var parts = settings.registration_month.split("\\.");
-        if (parts.length != 2) return;
-        var month = Integer.parseInt(parts[0]);
-        var year = Integer.parseInt(parts[1]);
-        var calendar = Calendar.getInstance();
-        calendar.set(year, month - 1, 2, 0, 0, 0);
-        calendar.set(Calendar.MILLISECOND, 0);
-        regDates.put(dialogId, (int) (calendar.getTimeInMillis() / 1000L));
     }
 }

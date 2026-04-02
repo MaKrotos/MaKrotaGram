@@ -107,6 +107,7 @@ import android.widget.LinearLayout;
 import android.widget.Space;
 import android.widget.TextView;
 
+import org.telegram.ui.MagicActivity;
 import androidx.annotation.DrawableRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -302,20 +303,20 @@ import org.telegram.ui.bots.BotCommandsMenuView;
 import org.telegram.ui.bots.BotWebViewSheet;
 import org.telegram.ui.bots.WebViewRequestProps;
 
-import tw.nekomimi.nekogram.BackButtonMenuRecent;
-import tw.nekomimi.nekogram.forward.ForwardContext;
-import tw.nekomimi.nekogram.forward.ForwardDrawable;
-import tw.nekomimi.nekogram.forward.ForwardItem;
-import tw.nekomimi.nekogram.forward.ForwardPopupWrapper;
-import tw.nekomimi.nekogram.MessageDetailsActivity;
-import tw.nekomimi.nekogram.NekoConfig;
-import tw.nekomimi.nekogram.helpers.MessageHelper;
-import tw.nekomimi.nekogram.helpers.QrHelper;
-import tw.nekomimi.nekogram.helpers.EmojiHelper;
-import tw.nekomimi.nekogram.helpers.WebAppHelper;
-import tw.nekomimi.nekogram.streaming.MediaStreamingProvider;
-import tw.nekomimi.nekogram.translator.Translator;
-import tw.nekomimi.nekogram.translator.TranslatorSettingsPopupWrapper;
+import tw.fdw.makrotagram.BackButtonMenuRecent;
+import tw.fdw.makrotagram.forward.ForwardContext;
+import tw.fdw.makrotagram.forward.ForwardDrawable;
+import tw.fdw.makrotagram.forward.ForwardItem;
+import tw.fdw.makrotagram.forward.ForwardPopupWrapper;
+import tw.fdw.makrotagram.MessageDetailsActivity;
+import tw.fdw.makrotagram.NekoConfig;
+import tw.fdw.makrotagram.helpers.MessageHelper;
+import tw.fdw.makrotagram.helpers.QrHelper;
+import tw.fdw.makrotagram.helpers.EmojiHelper;
+import tw.fdw.makrotagram.helpers.WebAppHelper;
+import tw.fdw.makrotagram.streaming.MediaStreamingProvider;
+import tw.fdw.makrotagram.translator.Translator;
+import tw.fdw.makrotagram.translator.TranslatorSettingsPopupWrapper;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -1639,7 +1640,10 @@ public class ChatActivity extends BaseFragment implements
 
     private final static int chat_menu_topic_create = 73;
 
+
+
     private final static int id_chat_compose_panel = 1000;
+    private final static int magic = 1001;
 
     RecyclerListView.OnItemLongClickListenerExtended onItemLongClickListener = new RecyclerListView.OnItemLongClickListenerExtended() {
         @Override
@@ -4218,8 +4222,13 @@ public class ChatActivity extends BaseFragment implements
                 } else if (id == chat_menu_topic_create) {
                     presentFragment(TopicCreateFragment.create(-dialog_id, 0).setOpenInChatActivity(ChatActivity.this));
                 }
+                else if (id == magic)
+                {
+                    showMagicOptions();
+                }
             }
         });
+
         View backButton = actionBar.getBackButton();
         backButton.setOnTouchListener(new LongPressListenerWithMovingGesture() {
             @Override
@@ -10290,6 +10299,8 @@ public class ChatActivity extends BaseFragment implements
         selectedMessagesCountTextView.setOnTouchListener((v, event) -> true);
         actionMode.addView(selectedMessagesCountTextView, LayoutHelper.createLinear(0, LayoutHelper.MATCH_PARENT, 1.0f, 65, 0, 0, 0));
 
+        ActionBarMenuItem magicItem = null; // <-- объявляем здесь
+
         if (currentEncryptedChat == null) {
             final boolean isSavedMessages = getDialogId() == getUserConfig().getClientUserId() && (chatMode == 0 || chatMode == MODE_SAVED);
             actionModeViews.add(actionMode.addItemWithWidth(save_to, R.drawable.msg_download, AndroidUtilities.dp(54), LocaleController.getString(R.string.SaveToMusic)));
@@ -10303,6 +10314,8 @@ public class ChatActivity extends BaseFragment implements
                 actionModeViews.add(actionMode.addItemWithWidth(forward, R.drawable.msg_forward, AndroidUtilities.dp(54), LocaleController.getString(R.string.Forward)));
                 if (NekoConfig.showNoQuoteForward) actionModeViews.add(actionMode.addItemWithWidth(ForwardItem.ID_FORWARD_NOQUOTE, R.drawable.msg_forward, AndroidUtilities.dp(54), LocaleController.getString(R.string.NoQuoteForward)));
             }
+
+
             actionModeViews.add(actionMode.addItemWithWidth(share, R.drawable.msg_shareout, AndroidUtilities.dp(54), LocaleController.getString(R.string.ShareFile)));
             actionModeViews.add(actionMode.addItemWithWidth(delete, R.drawable.msg_delete, AndroidUtilities.dp(54), LocaleController.getString(R.string.Delete)));
         } else {
@@ -10311,14 +10324,18 @@ public class ChatActivity extends BaseFragment implements
             actionModeViews.add(actionMode.addItemWithWidth(copy, R.drawable.msg_copy, AndroidUtilities.dp(54), LocaleController.getString(R.string.Copy)));
             actionModeViews.add(actionMode.addItemWithWidth(delete, R.drawable.msg_delete, AndroidUtilities.dp(54), LocaleController.getString(R.string.Delete)));
         }
+
+        actionModeViews.add(actionMode.addItemWithWidth(magic, R.drawable.ic_ab_magic, AndroidUtilities.dp(54), LocaleController.getString(R.string.magic)));
+
+
         actionMode.setItemVisibility(edit, canEditMessagesCount == 1 && selectedMessagesIds[0].size() + selectedMessagesIds[1].size() == 1 ? View.VISIBLE : View.GONE);
         actionMode.setItemVisibility(copy, !isPeerNoForwards() && selectedMessagesCanCopyIds[0].size() + selectedMessagesCanCopyIds[1].size() != 0 ? View.VISIBLE : View.GONE);
         actionMode.setItemVisibility(star, selectedMessagesCanStarIds[0].size() + selectedMessagesCanStarIds[1].size() != 0 ? View.VISIBLE : View.GONE);
         actionMode.setItemVisibility(delete, cantDeleteMessagesCount == 0 ? View.VISIBLE : View.GONE);
         actionMode.setItemVisibility(tag_message, getUserConfig().isPremium() ? View.VISIBLE : View.GONE);
         actionMode.setItemVisibility(share, View.GONE);
-    }
 
+    }
     private void hideTagSelector() {
         if (tagSelector == null) return;
         final ReactionsContainerLayout thisTagSelector = tagSelector;
@@ -31626,12 +31643,11 @@ public class ChatActivity extends BaseFragment implements
                 popupX += location[0];
             }
             int totalHeight = contentView.getHeight();
-            totalHeight -= windowInsetsStateHolder.getCurrentNavigationBarInset();
             int height = scrimPopupContainerLayout.getMeasuredHeight() + AndroidUtilities.dp(48);
-            /*int keyboardHeight = contentView.measureKeyboardHeight();
+            int keyboardHeight = contentView.measureKeyboardHeight();
             if (keyboardHeight > AndroidUtilities.dp(20)) {
                 totalHeight += keyboardHeight;
-            }*/
+            }
             int popupY;
             int minY = (int) (chatListView.getY() + dp(24));
             int maxY = totalHeight - height - dp(8);
@@ -45610,6 +45626,40 @@ public class ChatActivity extends BaseFragment implements
         }
 
         //}
+    }
+
+    private void showMagicOptions() {
+        if (getParentActivity() == null || selectedMessagesIds[0].size() + selectedMessagesIds[1].size() == 0) {
+            return;
+        }
+
+        // Собираем выбранные сообщения
+        ArrayList<MessageObject> selectedMessages = new ArrayList<>();
+
+        for (SparseArray<MessageObject> messageArray : selectedMessagesIds) {
+            if (messageArray != null) {
+                for (int i = 0; i < messageArray.size(); i++) {
+                    MessageObject message = messageArray.valueAt(i);
+                    if (message != null) {
+                        selectedMessages.add(message);
+                    }
+                }
+            }
+        }
+
+        if (selectedMessages.isEmpty()) {
+            return;
+        }
+
+        // Создаем новый фрагмент MagicActivity
+        MagicActivity magicActivity = new MagicActivity();
+        magicActivity.setSelectedMessages(selectedMessages);
+
+        // Открываем новое окно
+        presentFragment(magicActivity);
+
+        // Сбрасываем режим выделения
+        clearSelectionMode();
     }
 
     private int getMergedVisibleBlurredPositions(List<RectF> positions) {

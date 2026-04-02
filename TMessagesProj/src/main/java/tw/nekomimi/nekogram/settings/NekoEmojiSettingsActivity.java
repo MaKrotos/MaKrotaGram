@@ -1,4 +1,4 @@
-package tw.nekomimi.nekogram.settings;
+package tw.fdw.makrotagram.settings;
 
 import android.annotation.SuppressLint;
 import android.content.ClipData;
@@ -44,8 +44,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 
-import tw.nekomimi.nekogram.NekoConfig;
-import tw.nekomimi.nekogram.helpers.EmojiHelper;
+import tw.fdw.makrotagram.NekoConfig;
+import tw.fdw.makrotagram.helpers.EmojiHelper;
 
 public class NekoEmojiSettingsActivity extends BaseNekoSettingsActivity implements ChatAttachAlertDocumentLayout.DocumentSelectActivityDelegate {
 

@@ -53,8 +53,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Objects;
 
-import tw.nekomimi.nekogram.helpers.MessageHelper;
-import tw.nekomimi.nekogram.helpers.WhisperHelper;
+import tw.fdw.makrotagram.helpers.MessageHelper;
+import tw.fdw.makrotagram.helpers.WhisperHelper;
 
 public class TranscribeButton {
 

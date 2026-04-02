@@ -1,4 +1,4 @@
-package tw.nekomimi.nekogram.settings;
+package tw.fdw.makrotagram.settings;
 
 import android.content.Context;
 import android.text.SpannableStringBuilder;
@@ -42,10 +42,10 @@ import java.util.Locale;
 
 import me.vkryl.android.animator.BoolAnimator;
 import me.vkryl.android.animator.FactorAnimator;
-import tw.nekomimi.nekogram.accessibility.AccessibilitySettingsActivity;
-import tw.nekomimi.nekogram.helpers.CloudSettingsHelper;
-import tw.nekomimi.nekogram.helpers.PasscodeHelper;
-import tw.nekomimi.nekogram.helpers.remote.ConfigHelper;
+import tw.fdw.makrotagram.accessibility.AccessibilitySettingsActivity;
+import tw.fdw.makrotagram.helpers.CloudSettingsHelper;
+import tw.fdw.makrotagram.helpers.PasscodeHelper;
+import tw.fdw.makrotagram.helpers.remote.ConfigHelper;
 
 public class NekoSettingsActivity extends BaseNekoSettingsActivity implements FactorAnimator.Target {
 
@@ -219,7 +219,7 @@ public class NekoSettingsActivity extends BaseNekoSettingsActivity implements Fa
         } else if (id == websiteRow) {
             Browser.openUrl(getParentActivity(), "https://nekogram.app");
         } else if (id == sourceCodeRow) {
-            Browser.openUrl(getParentActivity(), "https://github.com/Nekogram/Nekogram");
+            Browser.openUrl(getParentActivity(), "https://github.com/MaKrotaGram/MaKrotaGram");
         } else if (id >= sponsorRow) {
             var news = newsList.get(id - sponsorRow);
             Browser.openUrl(getParentActivity(), news.url);
@@ -323,7 +323,7 @@ public class NekoSettingsActivity extends BaseNekoSettingsActivity implements Fa
 
         searchResultList.add(new SearchResult(20000, LocaleController.getString(R.string.OfficialChannel), "@" + LocaleController.getString(R.string.OfficialChannelUsername), R.drawable.msg2_help, () -> getMessagesController().openByUserName(LocaleController.getString(R.string.OfficialChannelUsername), this, 1)));
         searchResultList.add(new SearchResult(20001, LocaleController.getString(R.string.OfficialSite), "nekogram.app", R.drawable.msg2_help, () -> Browser.openUrl(getParentActivity(), "https://nekogram.app")));
-        searchResultList.add(new SearchResult(20002, LocaleController.getString(R.string.ViewSourceCode), "GitHub", R.drawable.msg2_help, () -> Browser.openUrl(getParentActivity(), "https://github.com/Nekogram/Nekogram")));
+        searchResultList.add(new SearchResult(20002, LocaleController.getString(R.string.ViewSourceCode), "GitHub", R.drawable.msg2_help, () -> Browser.openUrl(getParentActivity(), "https://github.com/MaKrotaGram/MaKrotaGram")));
         searchResultList.add(new SearchResult(20003, LocaleController.getString(R.string.Translation), LocaleController.getString(R.string.TranslationAbout), R.drawable.msg2_help, () -> Browser.openUrl(getParentActivity(), "https://neko.crowdin.com/nekogram")));
         searchResultList.add(new SearchResult(20004, LocaleController.getString(R.string.Donate), LocaleController.getString(R.string.DonateAbout), R.drawable.msg2_help, () -> presentFragment(new NekoDonateActivity())));
 

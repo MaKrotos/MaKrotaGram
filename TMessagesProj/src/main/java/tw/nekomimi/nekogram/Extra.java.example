@@ -1,16 +1,18 @@
-package tw.nekomimi.nekogram;
+package tw.fdw.makrotagram;
 
 import org.telegram.messenger.BuildConfig;
 
 import java.util.List;
 
-import tw.nekomimi.nekogram.helpers.UserHelper;
-import tw.nekomimi.nekogram.helpers.remote.ConfigHelper;
+import tw.fdw.makrotagram.helpers.UserHelper;
+import tw.fdw.makrotagram.helpers.remote.ConfigHelper;
 
 public class Extra {
     // https://core.telegram.org/api/obtaining_api_id
     public static final int APP_ID = 0;
     public static final String APP_HASH = "";
+
+    public static final String HUGGINGFACETOKEN = "";
 
     public static final String PLAYSTORE_APP_URL = "";
 

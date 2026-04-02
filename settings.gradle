@@ -22,9 +22,10 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Nekogram"
+rootProject.name = "MaKrotaGram"
 include ':TMessagesProj'
 include ':TMessagesProj_App'
+include ':sugar-pocketAI'
 //include ':TMessagesProj_AppHuawei'
 //include ':TMessagesProj_AppHockeyApp'
 //include ':TMessagesProj_AppStandalone'

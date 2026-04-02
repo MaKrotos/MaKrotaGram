@@ -1,4 +1,4 @@
-package tw.nekomimi.nekogram.helpers.remote;
+package tw.fdw.makrotagram.helpers.remote;
 
 import android.app.Activity;
 import android.content.SharedPreferences;
@@ -25,9 +25,9 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import tw.nekomimi.nekogram.Extra;
-import tw.nekomimi.nekogram.NekoConfig;
-import tw.nekomimi.nekogram.helpers.InlineBotHelper;
+import tw.fdw.makrotagram.Extra;
+import tw.fdw.makrotagram.NekoConfig;
+import tw.fdw.makrotagram.helpers.InlineBotHelper;
 
 public abstract class BaseRemoteHelper {
     protected static final SharedPreferences preferences = ApplicationLoader.applicationContext.getSharedPreferences("nekoremoteconfig", Activity.MODE_PRIVATE);

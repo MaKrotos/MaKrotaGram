@@ -1,4 +1,4 @@
-package tw.nekomimi.nekogram.helpers;
+package tw.fdw.makrotagram.helpers;
 
 import android.app.Activity;
 import android.content.SharedPreferences;
@@ -24,8 +24,8 @@ import org.telegram.ui.web.BotWebViewContainer;
 
 import java.util.function.Consumer;
 
-import tw.nekomimi.nekogram.Extra;
-import tw.nekomimi.nekogram.NekoConfig;
+import tw.fdw.makrotagram.Extra;
+import tw.fdw.makrotagram.NekoConfig;
 
 public class WebAppHelper {
     public static final int INTERNAL_BOT_TLV = 1;

@@ -1,4 +1,4 @@
-package tw.nekomimi.nekogram.settings;
+package tw.fdw.makrotagram.settings;
 
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
@@ -28,8 +28,8 @@ import org.telegram.ui.Components.CheckBox2;
 import org.telegram.ui.Components.CubicBezierInterpolator;
 import org.telegram.ui.Components.LayoutHelper;
 
-import tw.nekomimi.nekogram.NekoConfig;
-import tw.nekomimi.nekogram.helpers.EmojiHelper;
+import tw.fdw.makrotagram.NekoConfig;
+import tw.fdw.makrotagram.helpers.EmojiHelper;
 
 @SuppressLint("ViewConstructor")
 public class EmojiSetCell extends FrameLayout {

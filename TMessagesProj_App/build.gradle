@@ -3,22 +3,12 @@ import com.android.build.api.variant.FilterConfiguration
 plugins {
     id 'com.android.application'
     id 'com.google.gms.google-services'
-    id 'io.sentry.android.gradle'
 }
 
 dependencies {
     implementation project(':TMessagesProj')
 }
 
-sentry {
-    uploadNativeSymbols = true
-    includeSourceContext = true
-    additionalSourceDirsForSourceContext = [ '../TMessagesProj/src/main/java' ]
-    autoInstallation {
-        enabled = false
-    }
-    ignoredBuildTypes = ["debug"]
-}
 
 android {
     defaultConfig.applicationId = APP_PACKAGE
@@ -103,7 +93,7 @@ androidComponents {
             def abi = output.filters.find { it.filterType == FilterConfiguration.FilterType.ABI }?.identifier
             def abiName = abi ?: "universal"
             def baseVersionCode = output.versionCode.get()
-            output.outputFileName.set("Nekogram-${output.versionName.get()}-${baseVersionCode}-${abiName}.apk")
+            output.outputFileName.set("MaKrotaGram-${output.versionName.get()}-${baseVersionCode}-${abiName}.apk")
             output.versionCode.set(baseVersionCode * 10)
         }
     }

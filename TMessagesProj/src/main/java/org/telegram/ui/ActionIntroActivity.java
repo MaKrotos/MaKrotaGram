@@ -60,8 +60,6 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.util.ArrayList;
 
-import tw.nekomimi.nekogram.helpers.PopupHelper;
-
 public class ActionIntroActivity extends BaseFragment implements LocationController.LocationFetchCallback {
 
     private RLottieImageView imageView;
@@ -554,7 +552,13 @@ public class ActionIntroActivity extends BaseFragment implements LocationControl
                 }
                 case ACTION_TYPE_CHANGE_PHONE_NUMBER: {
                     if (true) {
-                        PopupHelper.showBlameAlert(context, R.string.ChangePhoneNumberBlameDurov, "tg://settings/change_number");
+                        var builder = new AlertDialog.Builder(getParentActivity());
+                        builder.setTitle(LocaleController.getString(R.string.RestorePasswordNoEmailTitle));
+                        builder.setMessage(AndroidUtilities.replaceTags(LocaleController.getString(R.string.ChangePhoneNumberBlameDurov)));
+                        builder.setPositiveButton(LocaleController.getString(R.string.OK), null);
+                        builder.setNeutralButton(LocaleController.getString(R.string.InstallOfficialApp),
+                                (dialog, which) -> getParentActivity().startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=org.telegram.messenger"))));
+                        showDialog(builder.create());
                         return;
                     }
                     AlertDialog.Builder builder = new AlertDialog.Builder(getParentActivity());

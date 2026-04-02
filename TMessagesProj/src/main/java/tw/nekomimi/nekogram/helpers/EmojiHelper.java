@@ -1,4 +1,4 @@
-package tw.nekomimi.nekogram.helpers;
+package tw.fdw.makrotagram.helpers;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
@@ -42,7 +42,7 @@ import java.util.Locale;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-import tw.nekomimi.nekogram.NekoConfig;
+import tw.fdw.makrotagram.NekoConfig;
 
 @SuppressWarnings("ResultOfMethodCallIgnored")
 public class EmojiHelper {

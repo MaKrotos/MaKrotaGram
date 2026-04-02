@@ -1,4 +1,4 @@
-package tw.nekomimi.nekogram.translator;
+package tw.fdw.makrotagram.translator;
 
 import com.google.common.util.concurrent.SettableFuture;
 

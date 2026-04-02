@@ -145,8 +145,8 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.concurrent.CountDownLatch;
 
-import tw.nekomimi.nekogram.BackButtonMenuRecent;
-import tw.nekomimi.nekogram.NekoConfig;
+import tw.fdw.makrotagram.BackButtonMenuRecent;
+import tw.fdw.makrotagram.NekoConfig;
 
 public class TopicsFragment extends BaseFragment implements NotificationCenter.NotificationCenterDelegate, ChatActivityInterface, RightSlidingDialogContainer.BaseFragmentWithFullscreen, MainTabsActivity.TabFragmentDelegate {
 
