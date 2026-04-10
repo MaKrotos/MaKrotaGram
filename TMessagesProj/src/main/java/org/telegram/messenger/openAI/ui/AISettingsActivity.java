@@ -21,6 +21,7 @@ import org.telegram.ui.Components.LayoutHelper;
 import org.telegram.ui.Components.RecyclerListView;
 
 import java.util.List;
+import java.util.function.Consumer;
 
 import org.telegram.messenger.openAI.models.AIStyle;
 import org.telegram.messenger.openAI.AIStyleService;
@@ -44,6 +45,10 @@ public class AISettingsActivity extends BaseFragment {
     private int styleHeaderRow;
     private int selectedStyleRow;
     private int manageStylesRow;
+    private int autoReplyHeaderRow;
+    private int autoReplyEnabledRow;
+    private int autoReplyDelayRow;
+    private int autoReplyHistoryCountRow;
     private int dividerRow;
     private int testHeaderRow;
     private int testConnectionRow;
@@ -80,6 +85,10 @@ public class AISettingsActivity extends BaseFragment {
         styleHeaderRow = rowCount++;
         selectedStyleRow = rowCount++;
         manageStylesRow = rowCount++;
+        autoReplyHeaderRow = rowCount++;
+        autoReplyEnabledRow = rowCount++;
+        autoReplyDelayRow = rowCount++;
+        autoReplyHistoryCountRow = rowCount++;
         dividerRow = rowCount++;
         testHeaderRow = rowCount++;
         testConnectionRow = rowCount++;
@@ -151,6 +160,34 @@ public class AISettingsActivity extends BaseFragment {
             }
             if (position == manageStylesRow) {
                 openManageStylesActivity();
+                return;
+            }
+            if (position == autoReplyEnabledRow) {
+                boolean newEnabled = !aiSettings.isAutoReplyEnabled();
+                aiSettings.setAutoReplyEnabled(newEnabled);
+                if (listAdapter != null) {
+                    listAdapter.notifyItemChanged(position);
+                }
+                // Включить/выключить менеджер автоответов
+                AutoReplyManager.getInstance(currentAccount).setEnabled(newEnabled);
+                return;
+            }
+            if (position == autoReplyDelayRow) {
+                showNumberPickerDialog(LocaleController.getString("AutoReplyDelay", R.string.AutoReplyDelay), aiSettings.getAutoReplyDelayMinutes(), 1, 60, value -> {
+                    aiSettings.setAutoReplyDelayMinutes(value);
+                    if (listAdapter != null) {
+                        listAdapter.notifyItemChanged(position);
+                    }
+                });
+                return;
+            }
+            if (position == autoReplyHistoryCountRow) {
+                showNumberPickerDialog(LocaleController.getString("AutoReplyHistoryCount", R.string.AutoReplyHistoryCount), aiSettings.getAutoReplyIncludeHistoryCount(), 0, 50, value -> {
+                    aiSettings.setAutoReplyIncludeHistoryCount(value);
+                    if (listAdapter != null) {
+                        listAdapter.notifyItemChanged(position);
+                    }
+                });
                 return;
             }
             if (position == testConnectionRow) {
@@ -341,6 +378,42 @@ public class AISettingsActivity extends BaseFragment {
         builder.show();
     }
 
+    private void showNumberPickerDialog(String title, int initialValue, int min, int max, Consumer<Integer> callback) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(getParentActivity());
+        builder.setTitle(title);
+
+        LinearLayout container = new LinearLayout(getParentActivity());
+        container.setOrientation(LinearLayout.VERTICAL);
+        container.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8));
+
+        EditText editText = new EditText(getParentActivity());
+        editText.setHint("Введите число");
+        editText.setText(String.valueOf(initialValue));
+        editText.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);
+        editText.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite));
+        editText.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
+        editText.setHintTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteHintText));
+
+        container.addView(editText, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 0));
+
+        builder.setView(container);
+        builder.setPositiveButton(LocaleController.getString("Save", R.string.Save), (dialog, which) -> {
+            String text = editText.getText().toString().trim();
+            if (!text.isEmpty()) {
+                try {
+                    int value = Integer.parseInt(text);
+                    if (value < min) value = min;
+                    if (value > max) value = max;
+                    callback.accept(value);
+                } catch (NumberFormatException e) {
+                    // ignore
+                }
+            }
+        });
+        builder.setNegativeButton(LocaleController.getString("Cancel", R.string.Cancel), null);
+        builder.show();
+    }
+
     private class ListAdapter extends RecyclerListView.SelectionAdapter {
 
         private Context mContext;
@@ -367,6 +440,8 @@ public class AISettingsActivity extends BaseFragment {
                         headerCell.setText("Промпт");
                     } else if (position == styleHeaderRow) {
                         headerCell.setText("Стили ответа");
+                    } else if (position == autoReplyHeaderRow) {
+                        headerCell.setText(LocaleController.getString("AutoReplyHeader", R.string.AutoReplyHeader));
                     } else if (position == testHeaderRow) {
                         headerCell.setText("Проверка соединения");
                     }
@@ -391,6 +466,12 @@ public class AISettingsActivity extends BaseFragment {
                         textCell.setText("Выбранный стиль: " + styleName, false);
                     } else if (position == manageStylesRow) {
                         textCell.setText("Управление стилями", false);
+                    } else if (position == autoReplyEnabledRow) {
+                        textCell.setText(LocaleController.getString("AutoReplyEnabled", R.string.AutoReplyEnabled), aiSettings.isAutoReplyEnabled());
+                    } else if (position == autoReplyDelayRow) {
+                        textCell.setText(LocaleController.getString("AutoReplyDelay", R.string.AutoReplyDelay) + ": " + aiSettings.getAutoReplyDelayMinutes() + " мин", false);
+                    } else if (position == autoReplyHistoryCountRow) {
+                        textCell.setText(LocaleController.getString("AutoReplyHistoryCount", R.string.AutoReplyHistoryCount) + ": " + aiSettings.getAutoReplyIncludeHistoryCount() + " шт", false);
                     } else {
                         for (int i = 0; i < serviceInfos.size(); i++) {
                             if (position == serviceRows[i]) {
@@ -433,6 +514,9 @@ public class AISettingsActivity extends BaseFragment {
             if (position == selectedStyleRow || position == manageStylesRow) {
                 return true;
             }
+            if (position == autoReplyEnabledRow || position == autoReplyDelayRow || position == autoReplyHistoryCountRow) {
+                return true;
+            }
             return position == testConnectionRow;
         }
 
@@ -462,7 +546,7 @@ public class AISettingsActivity extends BaseFragment {
 
         @Override
         public int getItemViewType(int position) {
-            if (position == selectedServiceHeaderRow || position == headerRow || position == testHeaderRow || position == promptHeaderRow || position == styleHeaderRow) {
+            if (position == selectedServiceHeaderRow || position == headerRow || position == testHeaderRow || position == promptHeaderRow || position == styleHeaderRow || position == autoReplyHeaderRow) {
                 return 0; // Header
             }
             if (position == selectedServiceRow) {
@@ -473,7 +557,7 @@ public class AISettingsActivity extends BaseFragment {
                     return 1; // Service row
                 }
             }
-            if (position == promptRow || position == selectedStyleRow || position == manageStylesRow) {
+            if (position == promptRow || position == selectedStyleRow || position == manageStylesRow || position == autoReplyEnabledRow || position == autoReplyDelayRow || position == autoReplyHistoryCountRow) {
                 return 1; // TextSettingsCell для промпта и стилей
             }
             if (position == testConnectionRow) {

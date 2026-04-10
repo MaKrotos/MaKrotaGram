@@ -14,6 +14,9 @@ public class AISettings {
     private static final String PREFS_NAME = "ai_service_settings";
     private static final String KEY_SELECTED_SERVICE = "selected_service";
     private static final String KEY_SYSTEM_PROMPT = "system_prompt";
+    private static final String KEY_AUTO_REPLY_ENABLED = "auto_reply_enabled";
+    private static final String KEY_AUTO_REPLY_DELAY_MINUTES = "auto_reply_delay_minutes";
+    private static final String KEY_AUTO_REPLY_INCLUDE_HISTORY_COUNT = "auto_reply_include_history_count";
     
     // Old keys removed (migration disabled)
 
@@ -52,6 +55,9 @@ public class AISettings {
     private Map<AIServiceType, BaseServiceSettings> serviceSettingsMap;
     private AIServiceType selectedService;
     private String systemPrompt = "";
+    private boolean autoReplyEnabled = false;
+    private int autoReplyDelayMinutes = 10;
+    private int autoReplyIncludeHistoryCount = 10;
     
     public AISettings() {
         this(UserConfig.selectedAccount);
@@ -76,6 +82,11 @@ public class AISettings {
         // Load system prompt
         systemPrompt = preferences.getString(KEY_SYSTEM_PROMPT, "");
         
+        // Load auto-reply settings
+        autoReplyEnabled = preferences.getBoolean(KEY_AUTO_REPLY_ENABLED, false);
+        autoReplyDelayMinutes = preferences.getInt(KEY_AUTO_REPLY_DELAY_MINUTES, 10);
+        autoReplyIncludeHistoryCount = preferences.getInt(KEY_AUTO_REPLY_INCLUDE_HISTORY_COUNT, 10);
+        
         // Initialize service settings objects
         serviceSettingsMap.put(AIServiceType.OPENAI, new OpenAISettings(currentAccount));
         serviceSettingsMap.put(AIServiceType.GEMINI, new GeminiSettings(currentAccount));
@@ -90,6 +101,9 @@ public class AISettings {
         SharedPreferences.Editor editor = preferences.edit();
         editor.putString(KEY_SELECTED_SERVICE, selectedService.name());
         editor.putString(KEY_SYSTEM_PROMPT, systemPrompt);
+        editor.putBoolean(KEY_AUTO_REPLY_ENABLED, autoReplyEnabled);
+        editor.putInt(KEY_AUTO_REPLY_DELAY_MINUTES, autoReplyDelayMinutes);
+        editor.putInt(KEY_AUTO_REPLY_INCLUDE_HISTORY_COUNT, autoReplyIncludeHistoryCount);
         editor.apply();
         
         for (BaseServiceSettings settings : serviceSettingsMap.values()) {
@@ -264,6 +278,34 @@ public class AISettings {
         GeminiSettings gemini = (GeminiSettings) getServiceSettings(AIServiceType.GEMINI);
         gemini.setModel(model);
         gemini.save();
+    }
+    
+    // Auto-reply settings
+    public boolean isAutoReplyEnabled() {
+        return autoReplyEnabled;
+    }
+    
+    public void setAutoReplyEnabled(boolean enabled) {
+        this.autoReplyEnabled = enabled;
+        saveAll();
+    }
+    
+    public int getAutoReplyDelayMinutes() {
+        return autoReplyDelayMinutes;
+    }
+    
+    public void setAutoReplyDelayMinutes(int minutes) {
+        this.autoReplyDelayMinutes = minutes;
+        saveAll();
+    }
+    
+    public int getAutoReplyIncludeHistoryCount() {
+        return autoReplyIncludeHistoryCount;
+    }
+    
+    public void setAutoReplyIncludeHistoryCount(int count) {
+        this.autoReplyIncludeHistoryCount = count;
+        saveAll();
     }
     
     

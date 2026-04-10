@@ -84,6 +84,16 @@ public class MagicActivity extends BaseFragment {
     private LinearLayout chatMessagesContainer;
     private TextView currentBotMessageView; // текущее сообщение бота для потокового обновления
 
+    // Интерфейс для передачи текста предложения обратно в ChatActivity
+    public interface OnUseSuggestionListener {
+        void onUseSuggestion(String text);
+    }
+    private OnUseSuggestionListener onUseSuggestionListener;
+
+    public void setOnUseSuggestionListener(OnUseSuggestionListener listener) {
+        this.onUseSuggestionListener = listener;
+    }
+
     public MagicActivity() {
         super();
         selectedMessages = new ArrayList<>();
@@ -1251,7 +1261,14 @@ public class MagicActivity extends BaseFragment {
 
         useButton.setOnClickListener(v -> {
             animateButtonPress(useButton);
-            Toast.makeText(context, LocaleController.getString("FeatureComingSoon", R.string.FeatureComingSoon), Toast.LENGTH_SHORT).show();
+            if (onUseSuggestionListener != null) {
+                onUseSuggestionListener.onUseSuggestion(text);
+                // Закрываем фрагмент после использования предложения
+                finishFragment();
+            } else {
+                // Fallback: показать тост, если колбэк не установлен (для отладки)
+                Toast.makeText(context, LocaleController.getString("FeatureComingSoon", R.string.FeatureComingSoon), Toast.LENGTH_SHORT).show();
+            }
         });
 
         // Анимация появления карточки

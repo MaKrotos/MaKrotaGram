@@ -45654,6 +45654,12 @@ public class ChatActivity extends BaseFragment implements
         // Создаем новый фрагмент MagicActivity
         MagicActivity magicActivity = new MagicActivity();
         magicActivity.setSelectedMessages(selectedMessages);
+        // Устанавливаем колбэк для вставки текста в поле ввода
+        magicActivity.setOnUseSuggestionListener(text -> {
+            if (chatActivityEnterView != null) {
+                chatActivityEnterView.setFieldText(text);
+            }
+        });
 
         // Открываем новое окно
         presentFragment(magicActivity);

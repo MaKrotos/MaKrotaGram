@@ -53,6 +53,7 @@ import tw.fdw.makrotagram.FirebaseFix;
 import tw.fdw.makrotagram.NekoConfig;
 import tw.fdw.makrotagram.helpers.AnalyticsHelper;
 import tw.fdw.makrotagram.helpers.ComponentsHelper;
+import org.telegram.messenger.openAI.AutoReplyManager;
 
 public class ApplicationLoader extends Application {
 
@@ -281,6 +282,7 @@ public class ApplicationLoader extends Application {
             if (!UserConfig.getInstance(a).isClientActivated()) continue;
             ContactsController.getInstance(a).checkAppAccount();
             DownloadController.getInstance(a);
+            AutoReplyManager.getInstance(a).init();
         }
         BillingController.getInstance().startConnection();
     }

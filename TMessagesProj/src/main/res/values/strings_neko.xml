@@ -324,4 +324,10 @@
 
     <!-- Accessibility -->
     <string name="AccessibilitySettings">Accessibility settings</string>
+
+    <!-- AI Auto Reply -->
+    <string name="AutoReplyHeader">Автоответы</string>
+    <string name="AutoReplyEnabled">Включить автоответы</string>
+    <string name="AutoReplyDelay">Задержка (минуты)</string>
+    <string name="AutoReplyHistoryCount">Сообщений из истории</string>
 </resources>
