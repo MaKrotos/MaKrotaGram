@@ -57,8 +57,38 @@ public class AutoReplyManager implements NotificationCenter.NotificationCenterDe
     public void didReceivedNotification(int id, int account, Object... args) {
         if (account != this.account) return;
         if (id == NotificationCenter.didReceiveNewMessages) {
-            long dialogId = (Long) args[0];
-            ArrayList<MessageObject> messages = (ArrayList<MessageObject>) args[1];
+            if (args.length < 3) {
+                FileLog.e("AutoReplyManager: didReceiveNewMessages args length < 3");
+                return;
+            }
+            long dialogId;
+            try {
+                dialogId = (Long) args[0];
+            } catch (ClassCastException e) {
+                FileLog.e("AutoReplyManager: dialogId cast error, args[0]=" + args[0] + " type=" + (args[0] != null ? args[0].getClass().getName() : "null"));
+                return;
+            }
+            ArrayList<MessageObject> messages = null;
+            try {
+                messages = (ArrayList<MessageObject>) args[1];
+            } catch (ClassCastException e) {
+                FileLog.e("AutoReplyManager: messages cast error, args[1] type=" + (args[1] != null ? args[1].getClass().getName() : "null"));
+                // Попробуем преобразовать, если это ArrayList<TLRPC.Message>
+                if (args[1] instanceof ArrayList) {
+                    ArrayList<?> rawList = (ArrayList<?>) args[1];
+                    if (!rawList.isEmpty() && rawList.get(0) instanceof TLRPC.Message) {
+                        FileLog.d("AutoReplyManager: converting TLRPC.Message to MessageObject");
+                        messages = new ArrayList<>();
+                        for (Object obj : rawList) {
+                            TLRPC.Message tlMessage = (TLRPC.Message) obj;
+                            messages.add(new MessageObject(account, tlMessage, false, false));
+                        }
+                    }
+                }
+                if (messages == null) {
+                    return;
+                }
+            }
             boolean scheduled = (Boolean) args[2];
             // int mode = (Integer) args[3]; // не используется
             if (scheduled) {
@@ -104,9 +134,10 @@ public class AutoReplyManager implements NotificationCenter.NotificationCenterDe
         MessagesController messagesController = MessagesController.getInstance(account);
         if (DialogObject.isUserDialog(dialogId)) {
             TLRPC.User user = messagesController.getUser(dialogId);
-            if (user == null || user.bot || user.deleted) {
+            if (user == null || user.deleted) {
                 return true;
             }
+            // Разрешаем ответы ботам (user.bot == true)
         } else if (DialogObject.isChatDialog(dialogId)) {
             TLRPC.Chat chat = messagesController.getChat(-dialogId);
             if (chat == null || chat.left || chat.kicked || chat.deactivated) {

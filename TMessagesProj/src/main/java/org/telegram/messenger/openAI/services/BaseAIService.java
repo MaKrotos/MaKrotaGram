@@ -1015,15 +1015,20 @@ public abstract class BaseAIService {
     }
 
     protected String getMessageText(MessageObject message) {
-        String caption = null;
-        if (message.messageText != null && !TextUtils.isEmpty(message.messageText.toString())) {
-            caption = message.messageText.toString();
+        // Получаем текст подписи из caption (если есть)
+        String captionText = null;
+        if (message.caption != null && !TextUtils.isEmpty(message.caption.toString())) {
+            captionText = message.caption.toString();
+        }
+        // Если caption пуст, пробуем messageText
+        if (captionText == null && message.messageText != null && !TextUtils.isEmpty(message.messageText.toString())) {
+            captionText = message.messageText.toString();
         }
 
         if (message.isPhoto()) {
-            return caption != null ? "[Photo] Caption: " + caption : "[Photo]";
+            return captionText != null ? "[Photo] Caption: " + captionText : "[Photo]";
         } else if (message.isVideo()) {
-            return caption != null ? "[Video] Caption: " + caption : "[Video]";
+            return captionText != null ? "[Video] Caption: " + captionText : "[Video]";
         } else if (message.isVoice()) {
             // Проверяем наличие расшифровки голосового сообщения
             String transcription = getVoiceTranscription(message);
@@ -1041,9 +1046,9 @@ public abstract class BaseAIService {
                 return "[Sticker]";
             }
         } else if (message.isGif()) {
-            return "[GIF]";
-        } else if (caption != null) {
-            return caption;
+            return captionText != null ? "[GIF] Caption: " + captionText : "[GIF]";
+        } else if (captionText != null) {
+            return captionText;
         } else {
             return "[Media]";
         }
