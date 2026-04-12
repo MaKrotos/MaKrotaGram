@@ -9,6 +9,8 @@ import org.telegram.messenger.UserConfig;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.List;
+import java.util.ArrayList;
 import java.util.concurrent.TimeUnit;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
@@ -32,6 +34,7 @@ public class GeminiService extends BaseAIService {
                     "Базовая модель для текстовых задач",
                     30720,
                     false,
+                    false,
                     true
             ),
             new AIModel(
@@ -40,6 +43,7 @@ public class GeminiService extends BaseAIService {
                     "Мультимодальная модель с поддержкой изображений",
                     12288,
                     true,
+                    false,
                     false
             ),
             new AIModel(
@@ -47,6 +51,7 @@ public class GeminiService extends BaseAIService {
                     "Gemini 1.5 Pro",
                     "Улучшенная версия с большим контекстом",
                     128000,
+                    true,
                     true,
                     true
             ),
@@ -56,6 +61,7 @@ public class GeminiService extends BaseAIService {
                     "Быстрая и экономичная модель",
                     128000,
                     true,
+                    true,
                     true
             ),
             new AIModel(
@@ -63,6 +69,7 @@ public class GeminiService extends BaseAIService {
                     "Gemini 1.0 Pro",
                     "Стабильная версия Gemini Pro",
                     30720,
+                    false,
                     false,
                     true
             ),
@@ -72,6 +79,7 @@ public class GeminiService extends BaseAIService {
                     "Стабильная версия с поддержкой изображений",
                     12288,
                     true,
+                    false,
                     false
             ),
             // Экспериментальные модели
@@ -81,6 +89,7 @@ public class GeminiService extends BaseAIService {
                     "Экспериментальная версия с новейшими функциями",
                     128000,
                     true,
+                    true,
                     true
             ),
             new AIModel(
@@ -88,6 +97,7 @@ public class GeminiService extends BaseAIService {
                     "Gemini 1.5 Flash Experimental",
                     "Экспериментальная быстрая версия",
                     128000,
+                    true,
                     true,
                     true
             )
@@ -200,11 +210,153 @@ public class GeminiService extends BaseAIService {
         }
     }
 
+    @Override
+    protected void makeRequest(String systemPrompt, String history, String model,
+                               List<BaseAIService.ImageAttachment> images, List<BaseAIService.AudioAttachment> audio, Callback callback) {
+        // Если модель не поддерживает мультимодальность или медиа нет, вызываем обычный запрос
+        boolean hasImages = images != null && !images.isEmpty();
+        boolean hasAudio = audio != null && !audio.isEmpty();
+        boolean modelSupportsVision = modelSupportsVision(model);
+        boolean modelSupportsAudio = modelSupportsAudio(model);
+        
+        if ((!hasImages && !hasAudio) || (!modelSupportsVision && !modelSupportsAudio)) {
+            makeRequest(systemPrompt, history, model, callback);
+            return;
+        }
+
+        String apiKey = getApiKey();
+        if (TextUtils.isEmpty(apiKey)) {
+            callback.onError("API ключ Gemini не установлен");
+            return;
+        }
+
+        GeminiSettings geminiSettings = (GeminiSettings) getServiceSettings();
+
+        try {
+            // Формируем URL с учетом выбранной модели
+            String url = API_URL + model + ":generateContent?key=" + apiKey;
+
+            JSONObject requestBody = new JSONObject();
+
+            JSONArray contents = new JSONArray();
+
+            // Объединяем системный промпт с историей
+            String fullPrompt = systemPrompt + "\n\n" + history;
+
+            JSONObject content = new JSONObject();
+            content.put("role", "user");
+
+            JSONArray parts = new JSONArray();
+            // Текстовая часть
+            JSONObject textPart = new JSONObject();
+            textPart.put("text", fullPrompt);
+            parts.put(textPart);
+
+            // Добавляем изображения как inline_data (если модель поддерживает vision)
+            if (hasImages && modelSupportsVision) {
+                for (BaseAIService.ImageAttachment img : images) {
+                    JSONObject imagePart = new JSONObject();
+                    JSONObject inlineData = new JSONObject();
+                    inlineData.put("mime_type", img.mimeType);
+                    inlineData.put("data", img.base64Data);
+                    imagePart.put("inline_data", inlineData);
+                    parts.put(imagePart);
+                }
+            }
+
+            // Добавляем аудио как inline_data (если модель поддерживает audio)
+            if (hasAudio && modelSupportsAudio) {
+                for (BaseAIService.AudioAttachment aud : audio) {
+                    JSONObject audioPart = new JSONObject();
+                    JSONObject inlineData = new JSONObject();
+                    inlineData.put("mime_type", aud.mimeType);
+                    inlineData.put("data", aud.base64Data);
+                    audioPart.put("inline_data", inlineData);
+                    parts.put(audioPart);
+                }
+            }
+
+            content.put("parts", parts);
+            contents.put(content);
+            requestBody.put("contents", contents);
+
+            // Настройки генерации из настроек
+            JSONObject generationConfig = new JSONObject();
+            generationConfig.put("temperature", geminiSettings.getTemperature());
+            generationConfig.put("maxOutputTokens", geminiSettings.getMaxOutputTokens());
+            generationConfig.put("topP", geminiSettings.getTopP());
+            generationConfig.put("topK", geminiSettings.getTopK());
+            requestBody.put("generationConfig", generationConfig);
+
+            // Настройки безопасности из настроек
+            JSONArray safetySettings = new JSONArray();
+            Map<String, String> safetyMap = geminiSettings.getSafetySettings();
+            for (Map.Entry<String, String> entry : safetyMap.entrySet()) {
+                addSafetySetting(safetySettings, entry.getKey(), entry.getValue());
+            }
+            requestBody.put("safetySettings", safetySettings);
+
+            Request request = new Request.Builder()
+                    .url(url)
+                    .post(RequestBody.create(requestBody.toString(), JSON))
+                    .build();
+
+            new Thread(() -> {
+                try {
+                    Response response = client.newCall(request).execute();
+                    if (response.isSuccessful()) {
+                        String responseBody = response.body().string();
+                        JSONObject jsonResponse = new JSONObject(responseBody);
+
+                        // Парсим ответ Gemini
+                        String contentsd = extractContentFromGeminiResponse(jsonResponse);
+
+                        try {
+                            JSONObject cleanedJson = cleanJsonResponse(contentsd);
+                            if (cleanedJson == null) {
+                                throw new Exception("Failed to parse JSON response");
+                            }
+                            JSONObject suggestions = enhanceSuggestions(cleanedJson);
+                            callback.onSuccess(suggestions);
+                        } catch (Exception e) {
+                            FileLog.e("Error parsing Gemini response: " + e.getMessage());
+                        }
+                    } else {
+                        handleErrorResponse(response, callback);
+                    }
+                } catch (Exception e) {
+                    FileLog.e("Gemini request error: " + e.getMessage());
+                    callback.onError("Ошибка сети: " + e.getMessage());
+                }
+            }).start();
+
+        } catch (Exception e) {
+            FileLog.e("Error creating Gemini request: " + e.getMessage());
+            callback.onError("Ошибка при создании запроса: " + e.getMessage());
+        }
+    }
+
+    @Override
+    protected void makeRequest(String systemPrompt, String history, String model, List<BaseAIService.ImageAttachment> images, Callback callback) {
+        // Вызываем новый метод с audio = null для обратной совместимости
+        makeRequest(systemPrompt, history, model, images, null, callback);
+    }
+
     private void addSafetySetting(JSONArray settings, String category, String threshold) throws Exception {
         JSONObject setting = new JSONObject();
         setting.put("category", category);
         setting.put("threshold", threshold);
         settings.put(setting);
+    }
+
+    private boolean modelSupportsVision(String modelId) {
+        AIModel model = modelsMap.get(modelId);
+        return model != null && model.supportsVision;
+    }
+
+    private boolean modelSupportsAudio(String modelId) {
+        AIModel model = modelsMap.get(modelId);
+        return model != null && model.supportsAudio;
     }
 
 

@@ -54,7 +54,7 @@ dependencies {
     implementation("org.json:json:20240303")
 
     // LiteRT LM for on-device LLM inference
-    implementation("com.google.ai.edge.litertlm:litertlm-android:0.9.0-beta")
+    implementation("com.google.ai.edge.litertlm:litertlm-android:0.10.0")
 
 
 }

@@ -242,16 +242,18 @@ public abstract class BaseAIService {
         public final String displayName;
         public final String description;
         public final int maxTokens;
-        public final boolean supportsVision;
-        public final boolean supportsFunctions;
+        public final boolean supportsVision; // Поддержка анализа изображений (мультимодальность)
+        public final boolean supportsAudio;  // Поддержка анализа аудио (мультимодальность)
+        public final boolean supportsFunctions; // Поддержка вызова функций
 
         public AIModel(String id, String displayName, String description,
-                       int maxTokens, boolean supportsVision, boolean supportsFunctions) {
+                       int maxTokens, boolean supportsVision, boolean supportsAudio, boolean supportsFunctions) {
             this.id = id;
             this.displayName = displayName;
             this.description = description;
             this.maxTokens = maxTokens;
             this.supportsVision = supportsVision;
+            this.supportsAudio = supportsAudio;
             this.supportsFunctions = supportsFunctions;
         }
     }
@@ -267,6 +269,203 @@ public abstract class BaseAIService {
             this.content = content;
             this.timestamp = System.currentTimeMillis();
         }
+    }
+
+    // Класс для представления вложения изображения
+    public static class ImageAttachment {
+        public final String mimeType; // "image/jpeg", "image/png"
+        public final String base64Data; // base64-encoded image data
+        public final String caption; // optional caption
+
+        public ImageAttachment(String mimeType, String base64Data, String caption) {
+            this.mimeType = mimeType;
+            this.base64Data = base64Data;
+            this.caption = caption;
+        }
+
+        public ImageAttachment(String mimeType, String base64Data) {
+            this(mimeType, base64Data, null);
+        }
+    }
+
+    // Класс для представления вложения аудио
+    public static class AudioAttachment {
+        public final String mimeType; // "audio/mpeg", "audio/ogg", "audio/wav"
+        public final String base64Data; // base64-encoded audio data
+        public final String caption; // optional caption
+        public final String transcription; // optional transcription text
+
+        public AudioAttachment(String mimeType, String base64Data, String caption, String transcription) {
+            this.mimeType = mimeType;
+            this.base64Data = base64Data;
+            this.caption = caption;
+            this.transcription = transcription;
+        }
+
+        public AudioAttachment(String mimeType, String base64Data, String caption) {
+            this(mimeType, base64Data, caption, null);
+        }
+
+        public AudioAttachment(String mimeType, String base64Data) {
+            this(mimeType, base64Data, null, null);
+        }
+    }
+
+    // Метод для извлечения изображений из сообщений
+    protected List<ImageAttachment> extractImagesFromMessages(ArrayList<MessageObject> messages) {
+        List<ImageAttachment> images = new ArrayList<>();
+        if (messages == null || messages.isEmpty()) {
+            return images;
+        }
+        for (MessageObject message : messages) {
+            if (message.isPhoto()) {
+                try {
+                    // Получаем объект фото через рефлексию
+                    java.lang.reflect.Field photoField = message.getClass().getDeclaredField("photo");
+                    photoField.setAccessible(true);
+                    TLRPC.Photo photo = (TLRPC.Photo) photoField.get(message);
+                    if (photo == null) {
+                        continue;
+                    }
+                    // Получаем размеры фото
+                    List<TLRPC.PhotoSize> sizes = photo.sizes;
+                    if (sizes == null || sizes.isEmpty()) {
+                        continue;
+                    }
+                    // Выбираем размер с наибольшим разрешением (или type = 'x')
+                    TLRPC.PhotoSize bestSize = null;
+                    for (TLRPC.PhotoSize size : sizes) {
+                        if ("x".equals(size.type) || "y".equals(size.type) || "w".equals(size.type)) {
+                            bestSize = size;
+                            break;
+                        }
+                    }
+                    if (bestSize == null) {
+                        bestSize = sizes.get(0);
+                    }
+                    // Получаем FileLoader через ApplicationLoader
+                    org.telegram.messenger.FileLoader fileLoader = org.telegram.messenger.FileLoader.getInstance(currentAccount);
+                    if (fileLoader == null) {
+                        continue;
+                    }
+                    // Получаем путь к файлу
+                    java.io.File file = fileLoader.getPathToAttach(bestSize, true);
+                    if (file == null || !file.exists()) {
+                        continue;
+                    }
+                    // Читаем файл и кодируем в base64
+                    java.io.FileInputStream fis = new java.io.FileInputStream(file);
+                    byte[] data = new byte[(int) file.length()];
+                    fis.read(data);
+                    fis.close();
+                    String base64 = android.util.Base64.encodeToString(data, android.util.Base64.DEFAULT);
+                    // Определяем MIME-тип по расширению
+                    String mimeType = "image/jpeg";
+                    String name = file.getName().toLowerCase();
+                    if (name.endsWith(".png")) {
+                        mimeType = "image/png";
+                    } else if (name.endsWith(".gif")) {
+                        mimeType = "image/gif";
+                    } else if (name.endsWith(".webp")) {
+                        mimeType = "image/webp";
+                    }
+                    // Получаем подпись (caption)
+                    String caption = message.caption != null ? message.caption.toString() : null;
+                    images.add(new ImageAttachment(mimeType, base64, caption));
+                } catch (Exception e) {
+                    FileLog.e("Error extracting image from message: " + e.getMessage());
+                }
+            }
+        }
+        return images;
+    }
+
+    // Метод для извлечения аудио из сообщений
+    protected List<AudioAttachment> extractAudioFromMessages(ArrayList<MessageObject> messages) {
+        List<AudioAttachment> audioList = new ArrayList<>();
+        if (messages == null || messages.isEmpty()) {
+            return audioList;
+        }
+        for (MessageObject message : messages) {
+            if (message.isVoice() || message.isMusic()) {
+                try {
+                    // Получаем документ аудио
+                    TLRPC.Document document = message.getDocument();
+                    if (document == null) {
+                        continue;
+                    }
+                    // Получаем FileLoader
+                    org.telegram.messenger.FileLoader fileLoader = org.telegram.messenger.FileLoader.getInstance(currentAccount);
+                    if (fileLoader == null) {
+                        continue;
+                    }
+                    // Получаем путь к файлу
+                    java.io.File file = fileLoader.getPathToAttach(document, true);
+                    if (file == null || !file.exists()) {
+                        continue;
+                    }
+                    // Читаем файл и кодируем в base64
+                    java.io.FileInputStream fis = new java.io.FileInputStream(file);
+                    byte[] data = new byte[(int) file.length()];
+                    fis.read(data);
+                    fis.close();
+                    String base64 = android.util.Base64.encodeToString(data, android.util.Base64.DEFAULT);
+                    // Определяем MIME-тип
+                    String mimeType = "audio/ogg"; // по умолчанию для голосовых сообщений
+                    for (TLRPC.DocumentAttribute attribute : document.attributes) {
+                        if (attribute instanceof TLRPC.TL_documentAttributeAudio) {
+                            TLRPC.TL_documentAttributeAudio audioAttr = (TLRPC.TL_documentAttributeAudio) attribute;
+                            if (audioAttr.voice) {
+                                mimeType = "audio/ogg";
+                            } else {
+                                // Для обычных аудиофайлов определяем по имени
+                                String fileName = document.file_name;
+                                if (fileName != null) {
+                                    fileName = fileName.toLowerCase();
+                                    if (fileName.endsWith(".mp3")) mimeType = "audio/mpeg";
+                                    else if (fileName.endsWith(".wav")) mimeType = "audio/wav";
+                                    else if (fileName.endsWith(".m4a")) mimeType = "audio/mp4";
+                                    else if (fileName.endsWith(".ogg")) mimeType = "audio/ogg";
+                                }
+                            }
+                            break;
+                        }
+                    }
+                    // Получаем подпись (caption) и транскрипцию
+                    String caption = message.caption != null ? message.caption.toString() : null;
+                    String transcription = getVoiceTranscription(message);
+                    audioList.add(new AudioAttachment(mimeType, base64, caption, transcription));
+                } catch (Exception e) {
+                    FileLog.e("Error extracting audio from message: " + e.getMessage());
+                }
+            }
+        }
+        return audioList;
+    }
+
+    // Перегруженный метод makeRequest с поддержкой изображений и аудио (по умолчанию игнорирует медиа)
+    protected void makeRequest(String systemPrompt, String history, String model,
+                               List<ImageAttachment> images, List<AudioAttachment> audio, Callback callback) {
+        // По умолчанию игнорируем медиа и вызываем старый метод
+        makeRequest(systemPrompt, history, model, callback);
+    }
+
+    // Перегруженный метод makeRequest с поддержкой только изображений (для обратной совместимости)
+    protected void makeRequest(String systemPrompt, String history, String model,
+                               List<ImageAttachment> images, Callback callback) {
+        makeRequest(systemPrompt, history, model, images, null, callback);
+    }
+
+    // Перегруженный метод makeStreamingRequest с поддержкой изображений и аудио
+    protected void makeStreamingRequest(String systemPrompt, String history, String model,
+                                        List<ImageAttachment> images, List<AudioAttachment> audio, StreamCallback callback) {
+        makeStreamingRequest(systemPrompt, history, model, callback);
+    }
+
+    // Перегруженный метод makeStreamingRequest с поддержкой только изображений (для обратной совместимости)
+    protected void makeStreamingRequest(String systemPrompt, String history, String model,
+                                        List<ImageAttachment> images, StreamCallback callback) {
+        makeStreamingRequest(systemPrompt, history, model, images, null, callback);
     }
 
     public BaseAIService(int account) {
@@ -300,6 +499,22 @@ public abstract class BaseAIService {
     public abstract String getDefaultModelId();
 
     public abstract AIModel getModelById(String modelId);
+
+    /**
+     * Проверяет, поддерживает ли текущая выбранная модель анализ изображений.
+     */
+    public boolean currentModelSupportsVision() {
+        AIModel model = getModelById(getModel());
+        return model != null && model.supportsVision;
+    }
+
+    /**
+     * Проверяет, поддерживает ли текущая выбранная модель анализ аудио.
+     */
+    public boolean currentModelSupportsAudio() {
+        AIModel model = getModelById(getModel());
+        return model != null && model.supportsAudio;
+    }
 
     /**
      * Returns the service-specific settings for this service.
@@ -375,8 +590,11 @@ public abstract class BaseAIService {
             // Формируем историю переписки с учётом истории чата анализатора
             String conversationHistory = buildConversationHistory(messages, userPrompt, interlocutorId, chatHistory);
 
-            // Отправляем запрос в конкретный сервис с указанием модели
-            makeRequest(systemPrompt, conversationHistory, model.id, callback);
+            // Извлекаем изображения из сообщений
+            List<ImageAttachment> images = extractImagesFromMessages(messages);
+
+            // Отправляем запрос в конкретный сервис с указанием модели и изображений
+            makeRequest(systemPrompt, conversationHistory, model.id, images, callback);
 
         } catch (Exception e) {
             FileLog.e("Error creating request: " + e.getMessage());
@@ -1126,6 +1344,7 @@ public abstract class BaseAIService {
                             return text;
                         }
                     }
+                
                 }
             } catch (Exception e) {
                 // Метод может отсутствовать - пробуем следующий способ

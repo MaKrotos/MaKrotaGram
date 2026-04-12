@@ -3,6 +3,10 @@ package org.telegram.messenger.openAI;
 import android.text.TextUtils;
 import org.telegram.messenger.FileLog;
 import org.telegram.messenger.openAI.SettingType;
+import com.fdw.sugar_pocketai.model.ModelCatalog;
+import com.fdw.sugar_pocketai.model.ModelItem;
+import org.json.JSONObject;
+import org.json.JSONException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -14,7 +18,7 @@ import java.util.Map;
  */
 public class LocalAISettings extends BaseServiceSettings {
 
-    // Field keys
+    // Field keys   
     private static final String KEY_MODEL_PATH = "model_path";
     private static final String KEY_TEMPERATURE = "temperature";
     private static final String KEY_MAX_TOKENS = "max_tokens";
@@ -25,6 +29,7 @@ public class LocalAISettings extends BaseServiceSettings {
     private static final String KEY_THREADS = "threads";
     private static final String KEY_ACCELERATOR = "accelerator";
     private static final String KEY_HF_TOKEN = "hf_token";
+    private static final String KEY_MODEL_METADATA = "model_metadata";
 
     // Default values
     public static final String DEFAULT_MODEL = "Gemma-3n-E2B-it";
@@ -76,6 +81,8 @@ public class LocalAISettings extends BaseServiceSettings {
 
     public void setModelPath(String path) {
         setValue(KEY_MODEL_PATH, path);
+        updateModelMetadata();
+        adjustMaxTokensToModelLimit();
     }
 
     public float getTemperature() {
@@ -150,6 +157,160 @@ public class LocalAISettings extends BaseServiceSettings {
         setValue(KEY_HF_TOKEN, token);
     }
 
+    /**
+     * Нормализует имя модели: приводит к нижнему регистру, удаляет общие суффиксы.
+     */
+    private String normalizeModelName(String name) {
+        if (name == null) return "";
+        String normalized = name.toLowerCase();
+        // Удаляем расширения файлов
+        normalized = normalized.replaceAll("\\.(litertlm|gguf|bin|litert)$", "");
+        // Удаляем суффиксы квантования и другие
+        normalized = normalized.replaceAll("[-_](int4|int8|q4|q8|q6_k|fp16|bf16|gguf|litertlm|litert|multi-prefill-seq|ekv\\d+)", "");
+        // Удаляем лишние подчёркивания и дефисы
+        normalized = normalized.replaceAll("[-_]+$", "");
+        return normalized.trim();
+    }
+
+    /**
+     * Возвращает ModelItem для текущей модели (по пути или имени).
+     * Если модель не найдена, возвращает null.
+     */
+    private ModelItem getCurrentModelItem() {
+        String modelPath = getModelPath();
+        if (TextUtils.isEmpty(modelPath)) {
+            // Если путь пустой, возможно, модель выбрана из каталога по умолчанию
+            // Используем DEFAULT_MODEL
+            return findModelItemByName(DEFAULT_MODEL);
+        }
+        // Извлекаем имя файла без расширения и пути
+        String fileName = new java.io.File(modelPath).getName();
+        // Нормализуем имя файла
+        String normalizedFileName = normalizeModelName(fileName);
+        // Пытаемся найти по нормализованному имени файла
+        ModelItem item = findModelItemByNormalizedName(normalizedFileName);
+        if (item != null) {
+            return item;
+        }
+        // Если не нашли, ищем по полному пути
+        for (ModelItem candidate : ModelCatalog.getDefaultModels()) {
+            if (modelPath.equals(candidate.getModelFile()) || modelPath.endsWith(candidate.getModelFile())) {
+                return candidate;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Ищет ModelItem по имени модели (например, "Gemma-3n-E2B-it").
+     */
+    private ModelItem findModelItemByName(String name) {
+        if (TextUtils.isEmpty(name)) {
+            return null;
+        }
+        for (ModelItem item : ModelCatalog.getDefaultModels()) {
+            if (name.equals(item.getName()) || name.equals(item.getModelId()) || item.getModelFile().contains(name)) {
+                return item;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Ищет ModelItem по нормализованному имени модели.
+     */
+    private ModelItem findModelItemByNormalizedName(String normalizedName) {
+        if (TextUtils.isEmpty(normalizedName)) {
+            return null;
+        }
+        for (ModelItem item : ModelCatalog.getDefaultModels()) {
+            // Нормализуем имя модели из каталога
+            String itemNormalized = normalizeModelName(item.getName());
+            if (normalizedName.equals(itemNormalized)) {
+                return item;
+            }
+            // Также проверяем нормализованное modelId и modelFile
+            if (normalizedName.equals(normalizeModelName(item.getModelId())) ||
+                normalizedName.equals(normalizeModelName(item.getModelFile()))) {
+                return item;
+            }
+            // Частичное совпадение (если нормализованное имя содержит часть имени модели)
+            if (normalizedName.contains(itemNormalized) || itemNormalized.contains(normalizedName)) {
+                return item;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Проверяет текущее значение max_tokens и уменьшает его, если оно превышает лимит модели.
+     * Вызывается при изменении модели.
+     */
+    private void adjustMaxTokensToModelLimit() {
+        int modelLimit = getModelMaxTokens();
+        int current = getMaxTokens();
+        if (current > modelLimit) {
+            setMaxTokens(modelLimit);
+            FileLog.d("LocalAISettings: Adjusted max_tokens from " + current + " to " + modelLimit + " due to model limit");
+        }
+    }
+
+    /**
+     * Обновляет метаданные модели на основе текущего пути модели.
+     * Сохраняет параметры модели (maxTokens, supportsImage, supportsAudio) в виде JSON.
+     */
+    private void updateModelMetadata() {
+        ModelItem item = getCurrentModelItem();
+        if (item != null) {
+            try {
+                JSONObject json = new JSONObject();
+                json.put("maxTokens", item.getMaxTokens());
+                json.put("supportsImage", item.isLlmSupportImage());
+                json.put("supportsAudio", item.isLlmSupportAudio());
+                json.put("modelId", item.getModelId());
+                json.put("modelName", item.getName());
+                setValue(KEY_MODEL_METADATA, json.toString());
+            } catch (JSONException e) {
+                FileLog.e("LocalAISettings: Failed to serialize model metadata", e);
+            }
+        } else {
+            // Если модель не найдена, очищаем метаданные
+            setValue(KEY_MODEL_METADATA, "");
+        }
+    }
+
+    /**
+     * Возвращает максимальное количество токенов из сохранённых метаданных модели.
+     * Если метаданные отсутствуют или повреждены, возвращает значение через getModelMaxTokens().
+     */
+    private int getMaxTokensFromMetadata() {
+        String jsonStr = (String) getValue(KEY_MODEL_METADATA);
+        if (TextUtils.isEmpty(jsonStr)) {
+            return -1;
+        }
+        try {
+            JSONObject json = new JSONObject(jsonStr);
+            if (json.has("maxTokens")) {
+                return json.getInt("maxTokens");
+            }
+        } catch (JSONException e) {
+            FileLog.e("LocalAISettings: Failed to parse model metadata", e);
+        }
+        return -1;
+    }
+
+    /**
+     * Переопределённый getModelMaxTokens, который сначала проверяет метаданные.
+     */
+    public int getModelMaxTokens() {
+        int fromMeta = getMaxTokensFromMetadata();
+        if (fromMeta >= 0) {
+            return fromMeta;
+        }
+        ModelItem item = getCurrentModelItem();
+        return item != null ? item.getMaxTokens() : DEFAULT_MAX_TOKENS;
+    }
+
     @Override
     public List<SettingDefinition> getSettingDefinitions() {
         List<SettingDefinition> definitions = new ArrayList<>();
@@ -185,7 +346,7 @@ public class LocalAISettings extends BaseServiceSettings {
                 .setDefaultValue(DEFAULT_MAX_TOKENS)
                 .setConstraints(new HashMap<String, Object>() {{
                     put("min", 1);
-                    put("max", 4096);
+                    put("max", DEFAULT_MAX_TOKENS);
                 }})
                 .build());
         definitions.add(new SettingDefinition.Builder()

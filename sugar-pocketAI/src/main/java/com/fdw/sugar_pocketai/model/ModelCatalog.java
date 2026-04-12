@@ -33,12 +33,13 @@ public final class ModelCatalog {
                 "gemma-3n-E2B-it-int4.litertlm",
                 "ba9ca88da013b537b6ed38108be609b8db1c3a16",
                 "Gemma 3n E2B with text, vision, audio support, 4096 context length.",
-                3655827456L,
+                3136226711L,
                 "https://huggingface.co/google/gemma-3n-E2B-it-litert-lm/resolve/ba9ca88da013b537b6ed38108be609b8db1c3a16/gemma-3n-E2B-it-int4.litertlm?download=true",
                 List.of("llm_chat", "llm_prompt_lab", "llm_ask_image", "llm_ask_audio"),
                 true,
                 true,
                 8,
+                4096,
                 authToken
         ));
 
@@ -49,12 +50,47 @@ public final class ModelCatalog {
                 "gemma-3n-E4B-it-int4.litertlm",
                 "297ed75955702dec3503e00c2c2ecbbf475300bc",
                 "Gemma 3n E4B with text, vision, audio support, 4096 context length.",
-                4919541760L,
-                "https://huggingface.co/google/gemma-3n-E4B-it-litert-lm/resolve/main/gemma-3n-E4B-it-int4.litertlm?download=true",
+                4405655031L,
+                "https://huggingface.co/google/gemma-3n-E4B-it-litert-lm/resolve/297ed75955702dec3503e00c2c2ecbbf475300bc/gemma-3n-E4B-it-int4.litertlm?download=true",
                 List.of("llm_chat", "llm_prompt_lab", "llm_ask_image", "llm_ask_audio"),
                 true,
                 true,
                 12,
+                4096,
+                authToken
+        ));
+
+        // Gemma-4-E2B-it
+        list.add(new ModelItem(
+                "Gemma-4-E2B-it",
+                "litert-community/gemma-4-E2B-it-litert-lm",
+                "gemma-4-E2B-it.litertlm",
+                "7fa1d78473894f7e736a21d920c3aa80f950c0db",
+                "A variant of Gemma 4 E2B ready for deployment on Android using [LiteRT-LM]. It supports multi-modality input, with up to 32K context length.",
+                2583085056L,
+                "https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm/resolve/7fa1d78473894f7e736a21d920c3aa80f950c0db/gemma-4-E2B-it.litertlm?download=true",
+                List.of("llm_chat", "llm_prompt_lab", "llm_agent_chat", "llm_ask_image", "llm_ask_audio"),
+                true,
+                true,
+                8,
+                32768,
+                authToken
+        ));
+
+        // Gemma-4-E4B-it
+        list.add(new ModelItem(
+                "Gemma-4-E4B-it",
+                "litert-community/gemma-4-E4B-it-litert-lm",
+                "gemma-4-E4B-it.litertlm",
+                "9695417f248178c63a9f318c6e0c56cb917cb837",
+                "A variant of Gemma 4 E4B ready for deployment on Android using [LiteRT-LM]. It supports multi-modality input, with up to 32K context length.",
+                3654467584L,
+                "https://huggingface.co/litert-community/gemma-4-E4B-it-litert-lm/resolve/9695417f248178c63a9f318c6e0c56cb917cb837/gemma-4-E4B-it.litertlm?download=true",
+                List.of("llm_chat", "llm_prompt_lab", "llm_agent_chat", "llm_ask_image", "llm_ask_audio"),
+                true,
+                true,
+                12,
+                32768,
                 authToken
         ));
 
@@ -65,12 +101,13 @@ public final class ModelCatalog {
                 "gemma3-1b-it-int4.litertlm",
                 "42d538a932e8d5b12e6b3b455f5572560bd60b2c",
                 "Quantized Gemma3 1B Instruct model.",
-                584417280L,
+                554661246L,
                 "https://huggingface.co/litert-community/Gemma3-1B-IT/resolve/42d538a932e8d5b12e6b3b455f5572560bd60b2c/gemma3-1b-it-int4.litertlm?download=true",
                 List.of("llm_chat", "llm_prompt_lab"),
                 false,
                 false,
                 6,
+                2048,
                 authToken
         ));
 
@@ -81,12 +118,13 @@ public final class ModelCatalog {
                 "Qwen2.5-1.5B-Instruct_multi-prefill-seq_q8_ekv4096.litertlm",
                 "19edb84c69a0212f29a6ef17ba0d6f278b6a1614",
                 "Qwen2.5 1.5B Instruct model for Android.",
-                1597931520L,
+                1625493432L,
                 "https://huggingface.co/litert-community/Qwen2.5-1.5B-Instruct/resolve/19edb84c69a0212f29a6ef17ba0d6f278b6a1614/Qwen2.5-1.5B-Instruct_multi-prefill-seq_q8_ekv4096.litertlm?download=true",
                 List.of("llm_chat", "llm_prompt_lab"),
                 false,
                 false,
                 6,
+                4096,
                 authToken
         ));
 
@@ -103,6 +141,7 @@ public final class ModelCatalog {
                 false,
                 false,
                 6,
+                4096,
                 authToken
         ));
 
@@ -119,6 +158,7 @@ public final class ModelCatalog {
                 false,
                 false,
                 6,
+                1024,
                 authToken
         ));
 
@@ -135,6 +175,7 @@ public final class ModelCatalog {
                 false,
                 false,
                 6,
+                1024,
                 authToken
         ));
 

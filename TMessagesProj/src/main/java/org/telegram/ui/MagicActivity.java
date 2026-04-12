@@ -37,6 +37,7 @@ import org.telegram.messenger.openAI.AISettingsActivity;
 import org.telegram.messenger.openAI.BaseAIService;
 import org.telegram.messenger.openAI.AIStyleService;
 import org.telegram.messenger.openAI.models.AIStyle;
+import org.telegram.messenger.openAI.LocalAISettings;
 import org.telegram.ui.ActionBar.ActionBar;
 import org.telegram.ui.ActionBar.AlertDialog;
 import org.telegram.ui.ActionBar.BaseFragment;
@@ -582,13 +583,44 @@ public class MagicActivity extends BaseFragment {
         if (serviceInfoView != null) {
             String serviceName = aiSettings.getServiceName();
             String modelName = "Unknown";
+            BaseAIService.AIModel model = null;
 
-            BaseAIService.AIModel model = aiService.getModelById(aiSettings.getCurrentModel());
-            if (model != null) {
-                modelName = model.displayName;
+            if (aiSettings.getSelectedServiceType() == AISettings.AIServiceType.LOCAL_AI) {
+                // Для Local AI получаем путь к модели из настроек
+                LocalAISettings localSettings = (LocalAISettings) aiSettings.getServiceSettings(AISettings.AIServiceType.LOCAL_AI);
+                String modelPath = localSettings.getModelPath();
+                if (modelPath != null && !modelPath.isEmpty()) {
+                    // Извлекаем имя файла из пути
+                    int lastSlash = modelPath.lastIndexOf('/');
+                    if (lastSlash >= 0 && lastSlash < modelPath.length() - 1) {
+                        modelName = modelPath.substring(lastSlash + 1);
+                    } else {
+                        modelName = modelPath;
+                    }
+                    // Попробуем получить объект модели через aiService
+                    model = aiService.getModelById(aiSettings.getCurrentModel());
+                } else {
+                    modelName = "Модель не выбрана";
+                }
+            } else {
+                model = aiService.getModelById(aiSettings.getCurrentModel());
+                if (model != null) {
+                    modelName = model.displayName;
+                }
             }
 
-            serviceInfoView.setText("⚡ " + serviceName + " • " + modelName);
+            // Строим строку с эмоджи возможностей
+            StringBuilder emoji = new StringBuilder();
+            if (model != null) {
+                if (model.supportsVision) {
+                    emoji.append(" 👁️");
+                }
+                if (model.supportsAudio) {
+                    emoji.append(" 🔊");
+                }
+            }
+
+            serviceInfoView.setText("⚡ " + serviceName + " • " + modelName + emoji.toString());
         }
     }
 
@@ -1457,6 +1489,7 @@ public class MagicActivity extends BaseFragment {
     public void onResume() {
         super.onResume();
         // Обновляем сервис при возвращении из настроек
+        aiSettings = new AISettings(currentAccount);
         updateService();
         updateServiceInfo();
         // Обновляем chips стилей

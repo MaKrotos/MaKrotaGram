@@ -238,8 +238,8 @@ public class LiteRTEngine implements InferenceEngine {
                     Collections.emptyList(), // initialMessages
                     Collections.emptyList(), // tools
                     samplerConfig,
-                    null, // systemMessage
-                    false  // automaticToolCalling
+                    false, // systemMessage (deprecated)
+                    Collections.emptyList()  // automaticToolCalling (now List<Channel>)
             );
             Conversation conversation = null;
             try {
@@ -342,8 +342,8 @@ public class LiteRTEngine implements InferenceEngine {
                     Collections.emptyList(), // initialMessages
                     Collections.emptyList(), // tools
                     samplerConfig,
-                    null, // systemMessage
-                    false  // automaticToolCalling
+                    false, // systemMessage (deprecated)
+                    Collections.emptyList()  // automaticToolCalling (now List<Channel>)
             );
             Conversation conversation = null;
             try {
@@ -444,8 +444,8 @@ public class LiteRTEngine implements InferenceEngine {
                     Collections.emptyList(), // initialMessages
                     Collections.emptyList(), // tools
                     samplerConfig,
-                    null, // systemMessage
-                    false  // automaticToolCalling
+                    false, // systemMessage (deprecated)
+                    Collections.emptyList()  // automaticToolCalling (now List<Channel>)
             );
             Conversation conversation = null;
             try {
@@ -554,8 +554,8 @@ public class LiteRTEngine implements InferenceEngine {
                     Collections.emptyList(), // initialMessages
                     Collections.emptyList(), // tools
                     samplerConfig,
-                    null, // systemMessage
-                    false  // automaticToolCalling
+                    false, // systemMessage (deprecated)
+                    Collections.emptyList()  // automaticToolCalling (now List<Channel>)
             );
             Conversation conversation = null;
             try {

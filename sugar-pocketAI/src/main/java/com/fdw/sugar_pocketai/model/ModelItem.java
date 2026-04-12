@@ -20,20 +20,21 @@ public class ModelItem {
     private final boolean llmSupportImage;
     private final boolean llmSupportAudio;
     private final int minDeviceMemoryInGb;
+    private final int maxTokens;
     private final String authToken;
 
     public ModelItem(String name, String modelId, String modelFile, String commitHash,
                      String description, long sizeInBytes, String downloadUrl,
                      List<String> taskTypes, boolean llmSupportImage, boolean llmSupportAudio,
-                     int minDeviceMemoryInGb) {
+                     int minDeviceMemoryInGb, int maxTokens) {
         this(name, modelId, modelFile, commitHash, description, sizeInBytes, downloadUrl,
-                taskTypes, llmSupportImage, llmSupportAudio, minDeviceMemoryInGb, null);
+                taskTypes, llmSupportImage, llmSupportAudio, minDeviceMemoryInGb, maxTokens, null);
     }
 
     public ModelItem(String name, String modelId, String modelFile, String commitHash,
                      String description, long sizeInBytes, String downloadUrl,
                      List<String> taskTypes, boolean llmSupportImage, boolean llmSupportAudio,
-                     int minDeviceMemoryInGb, String authToken) {
+                     int minDeviceMemoryInGb, int maxTokens, String authToken) {
         this.name = name;
         this.modelId = modelId;
         this.modelFile = modelFile;
@@ -45,6 +46,7 @@ public class ModelItem {
         this.llmSupportImage = llmSupportImage;
         this.llmSupportAudio = llmSupportAudio;
         this.minDeviceMemoryInGb = minDeviceMemoryInGb;
+        this.maxTokens = maxTokens;
         this.authToken = authToken;
     }
 
@@ -90,6 +92,10 @@ public class ModelItem {
 
     public int getMinDeviceMemoryInGb() {
         return minDeviceMemoryInGb;
+    }
+
+    public int getMaxTokens() {
+        return maxTokens;
     }
 
     public String getFormattedSize() {
