@@ -92,8 +92,6 @@ import java.util.Iterator;
 import java.util.Locale;
 import java.util.StringTokenizer;
 
-import tw.fdw.makrotagram.helpers.EmojiHelper;
-
 public class ChatAttachAlertDocumentLayout extends ChatAttachAlert.AttachAlertLayout {
 
     public interface DocumentSelectActivityDelegate {
@@ -155,13 +153,13 @@ public class ChatAttachAlertDocumentLayout extends ChatAttachAlert.AttachAlertLa
     private boolean allowMusic;
 
     private boolean searching;
+    public boolean isEmojiPicker;
 
     private boolean sortByName;
 
     private final static int search_button = 0;
     private final static int sort_button = 6;
     public boolean isSoundPicker;
-    public boolean isEmojiPicker;
 
     private static class ListItem {
         public int icon;
@@ -201,12 +199,15 @@ public class ChatAttachAlertDocumentLayout extends ChatAttachAlert.AttachAlertLa
         }
     };
 
+    public boolean isEmojiFont(File file) {
+        return file.getName().toLowerCase().endsWith(".ttf") || file.getName().toLowerCase().endsWith(".otf");
+    }
+
     public ChatAttachAlertDocumentLayout(ChatAttachAlert alert, Context context, int type, Theme.ResourcesProvider resourcesProvider) {
         super(alert, context, resourcesProvider);
         listAdapter = new ListAdapter(context);
         allowMusic = type == TYPE_MUSIC;
         isSoundPicker = type == TYPE_RINGTONE;
-        isEmojiPicker = type == TYPE_EMOJI;
         sortByName = SharedConfig.sortFilesByName;
         loadRecentFiles();
 
@@ -804,9 +805,6 @@ public class ChatAttachAlertDocumentLayout extends ChatAttachAlert.AttachAlertLa
                 if (isSoundPicker && !isRingtone(item.file)) {
                     return false;
                 }
-                if (isEmojiPicker && !isEmojiFont(item.file)) {
-                    return false;
-                }
                 if (item.file.length() == 0) {
                     return false;
                 }
@@ -834,6 +832,20 @@ public class ChatAttachAlertDocumentLayout extends ChatAttachAlert.AttachAlertLa
         } else {
             return false;
         }
+
+        if (parentAlert.isPollAttach) {
+            if (selectedFiles.isEmpty() && selectedMessages.isEmpty() || delegate == null || sendPressed) {
+                return true;
+            }
+            final ArrayList<MessageObject> fmessages = new ArrayList<>();
+            for (FilteredSearchView.MessageHashId hashId : selectedMessages.keySet()) {
+                fmessages.add(selectedMessages.get(hashId));
+            }
+            final ArrayList<String> files = new ArrayList<>(selectedFilesOrder);
+            delegate.didSelectFiles(files, null, null, fmessages, false, 0, 0, 0, false, 0);
+            return true;
+        }
+
         if (view instanceof SharedDocumentCell) {
             ((SharedDocumentCell) view).setChecked(add, true);
         }
@@ -872,14 +884,6 @@ public class ChatAttachAlertDocumentLayout extends ChatAttachAlert.AttachAlertLa
         }
 
         return true;
-    }
-
-    public boolean isEmojiFont(File file) {
-        boolean isValidEmojiFont = EmojiHelper.isValidEmojiPack(file);
-        if (!isValidEmojiFont) {
-            AndroidUtilities.runOnUIThread(() -> BulletinFactory.of(parentAlert.getContainer(), null).createErrorBulletinSubtitle(LocaleController.formatString("InvalidFormatError", R.string.InvalidFormatError), LocaleController.formatString("InvalidCustomEmojiTypeface", R.string.InvalidCustomEmojiTypeface), resourcesProvider).show());
-        }
-        return isValidEmojiFont;
     }
 
     public void setMaxSelectedFiles(int value) {
@@ -984,18 +988,13 @@ public class ChatAttachAlertDocumentLayout extends ChatAttachAlert.AttachAlertLa
                 ListItem item = new ListItem();
                 item.title = file.getName();
                 item.file = file;
-                if (file.isDirectory()) {
-                    item.icon = R.drawable.files_folder;
-                    item.subtitle = LocaleController.getString("Folder", R.string.Folder);
-                } else {
-                    String fname = file.getName();
-                    String[] sp = fname.split("\\.");
-                    item.ext = sp.length > 1 ? sp[sp.length - 1] : "?";
-                    item.subtitle = AndroidUtilities.formatFileSize(file.length());
-                    fname = fname.toLowerCase();
-                    if (fname.endsWith(".jpg") || fname.endsWith(".png") || fname.endsWith(".gif") || fname.endsWith(".jpeg")) {
-                        item.thumb = file.getAbsolutePath();
-                    }
+                String fname = file.getName();
+                String[] sp = fname.split("\\.");
+                item.ext = sp.length > 1 ? sp[sp.length - 1] : "?";
+                item.subtitle = AndroidUtilities.formatFileSize(file.length());
+                fname = fname.toLowerCase();
+                if (fname.endsWith(".jpg") || fname.endsWith(".png") || fname.endsWith(".gif") || fname.endsWith(".jpeg")) {
+                    item.thumb = file.getAbsolutePath();
                 }
                 listAdapter.recentItems.add(item);
             }
@@ -1353,7 +1352,7 @@ public class ChatAttachAlertDocumentLayout extends ChatAttachAlert.AttachAlertLa
 
         ListItem fs;
         try {
-            File telegramPath = SharedConfig.getTelegramPath();
+            File telegramPath = new File(ApplicationLoader.applicationContext.getExternalFilesDir(null), "Telegram");
             if (telegramPath.exists()) {
                 fs = new ListItem();
                 fs.title = "Telegram";
@@ -1366,7 +1365,7 @@ public class ChatAttachAlertDocumentLayout extends ChatAttachAlert.AttachAlertLa
             FileLog.e(e);
         }
 
-        if (!isSoundPicker && !isEmojiPicker) {
+        if (!isSoundPicker && (parentAlert == null || !parentAlert.isPollAttach)) {
             fs = new ListItem();
             fs.title = LocaleController.getString(R.string.Gallery);
             fs.subtitle = LocaleController.getString(R.string.GalleryInfo);

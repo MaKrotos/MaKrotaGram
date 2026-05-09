@@ -58,8 +58,6 @@ import java.util.HashSet;
 import java.util.Locale;
 import java.util.TimeZone;
 
-import tw.fdw.makrotagram.NekoConfig;
-
 public class LocaleController {
 
     static final int QUANTITY_OTHER = 0x0000;
@@ -75,9 +73,6 @@ public class LocaleController {
 
     private volatile FastDateFormat formatterDay;
     public FastDateFormat getFormatterDay() {
-        if (NekoConfig.formatTimeWithSeconds) {
-            return getFormatterDayWithSeconds();
-        }
         if (formatterDay == null) {
             synchronized (this) {
                 if (formatterDay == null) {
@@ -670,17 +665,22 @@ public class LocaleController {
         languagesDict.put(localeInfo.shortName, localeInfo);
 
         localeInfo = new LocaleInfo();
-        localeInfo.name = "日本語";
-        localeInfo.nameEnglish = "Japanese";
-        localeInfo.shortName = "ja_raw";
-        localeInfo.baseLangCode = null;
-        localeInfo.isRtl = false;
-        localeInfo.pathToFile = "unofficial";
-        localeInfo.pluralLangCode = "ja";
+        localeInfo.name = "Українська";
+        localeInfo.nameEnglish = "Ukrainian";
+        localeInfo.shortName = localeInfo.pluralLangCode = "uk";
+        localeInfo.pathToFile = null;
         localeInfo.builtIn = true;
         languages.add(localeInfo);
-        languagesDict.put(localeInfo.getKey(), localeInfo);
-        languagesDict.put("ja", localeInfo);
+        languagesDict.put(localeInfo.shortName, localeInfo);
+
+        localeInfo = new LocaleInfo();
+        localeInfo.name = "Русский";
+        localeInfo.nameEnglish = "Russian";
+        localeInfo.shortName = localeInfo.pluralLangCode = "ru";
+        localeInfo.pathToFile = null;
+        localeInfo.builtIn = true;
+        languages.add(localeInfo);
+        languagesDict.put(localeInfo.shortName, localeInfo);
 
         loadOtherLanguages();
         if (remoteLanguages.isEmpty()) {
@@ -1431,20 +1431,6 @@ public class LocaleController {
     }
 
     private String getStringInternal(String key, String fallback, int fallbackRes, int res) {
-        if (key.equals("AppName")) {
-            try {
-                return ApplicationLoader.applicationContext.getString(R.string.MaKrotaGram);
-            } catch (Exception e) {
-                FileLog.e(e);
-            }
-        }
-        if (key.equals("AppNameBeta")) {
-            try {
-                return ApplicationLoader.applicationContext.getString(R.string.NekogramBeta);
-            } catch (Exception e) {
-                FileLog.e(e);
-            }
-        }
         String value = BuildVars.USE_CLOUD_STRINGS ? localeValues.get(key) : null;
         if (value == null) {
             if (BuildVars.USE_CLOUD_STRINGS && fallback != null) {
@@ -2123,14 +2109,14 @@ public class LocaleController {
         final StringBuilder stringBuilder = new StringBuilder();
         if (hours > 0) {
             if (stringBuilder.length() > 0) stringBuilder.append(":");
-            stringBuilder.append(hours > 10 ? "" : "0");
+            stringBuilder.append(hours >= 10? "" : "0");
             stringBuilder.append(hours);
         }
         if (stringBuilder.length() > 0) stringBuilder.append(":");
-        stringBuilder.append(minutes > 10 ? "" : "0");
+        stringBuilder.append(minutes >= 10 ? "" : "0");
         stringBuilder.append(minutes);
         if (stringBuilder.length() > 0) stringBuilder.append(":");
-        stringBuilder.append(seconds > 10 ? "" : "0");
+        stringBuilder.append(seconds >= 10 ? "" : "0");
         stringBuilder.append(seconds);
         return stringBuilder.toString();
     }
@@ -2144,7 +2130,7 @@ public class LocaleController {
         if (languageOverride != null) {
             LocaleInfo toSet = currentLocaleInfo;
             currentLocaleInfo = null;
-            applyLanguage(toSet, false, true, UserConfig.selectedAccount);
+            applyLanguage(toSet, false, false, UserConfig.selectedAccount);
         } else {
             Locale newLocale = newConfig.locale;
             if (newLocale != null) {
@@ -2398,6 +2384,14 @@ public class LocaleController {
             FileLog.e(e);
         }
         return "LOC_ERR";
+    }
+
+    public static String formatPollEndTime(int seconds, boolean resultsHidden) {
+        final String s = seconds < 86400 ?
+                formatShortDuration(seconds) :
+            formatPluralString("Days", seconds / 86400);
+
+        return formatString(resultsHidden ? R.string.PollResultsIn : R.string.PollEndsIn, s);
     }
 
     public static String formatShortDuration2(int time) {
@@ -2920,12 +2914,6 @@ public class LocaleController {
     }
 
     public static String formatShortNumber(int number, int[] rounded) {
-        if (NekoConfig.disableNumberRounding) {
-            if (rounded != null) {
-                rounded[0] = number;
-            }
-            return String.valueOf(number);
-        }
         StringBuilder K = new StringBuilder();
         int lastDec = 0;
         int KCount = 0;

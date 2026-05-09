@@ -110,7 +110,7 @@
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher"
         android:largeHeap="true"
-        android:label="@string/AppNameMaKrota"
+        android:label="@string/AppName"
         android:theme="@style/Theme.TMessages.Start"
         android:manageSpaceActivity="org.telegram.ui.ExternalActionActivity"
         android:supportsRtl="false"
