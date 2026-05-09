@@ -35,7 +35,6 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.core.content.ContextCompat;
-import androidx.core.graphics.ColorUtils;
 import androidx.core.math.MathUtils;
 import androidx.recyclerview.widget.DefaultItemAnimator;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -63,7 +62,6 @@ import org.telegram.messenger.SharedConfig;
 import org.telegram.messenger.TranslateController;
 import org.telegram.messenger.Utilities;
 import org.telegram.messenger.XiaomiUtilities;
-import org.telegram.messenger.browser.Browser;
 import org.telegram.tgnet.ConnectionsManager;
 import org.telegram.tgnet.TLRPC;
 import org.telegram.ui.ActionBar.ActionBarMenuSubItem;
@@ -82,9 +80,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
-
-import tw.fdw.makrotagram.NekoConfig;
-import tw.fdw.makrotagram.translator.Translator;
 
 public class TranslateAlert2 extends BottomSheet implements NotificationCenter.NotificationCenterDelegate {
 
@@ -138,7 +133,6 @@ public class TranslateAlert2 extends BottomSheet implements NotificationCenter.N
         fixNavigationBar();
 
         this.reqText = text;
-        this.reqMessageEntities = entities;
         this.reqPeer = peer;
         this.reqMessageId = messageId;
         this.reqSum = sum;
@@ -172,7 +166,7 @@ public class TranslateAlert2 extends BottomSheet implements NotificationCenter.N
         textView.setHighlightColor(getThemedColor(Theme.key_chat_inTextSelectionHighlight));
         int handleColor = getThemedColor(Theme.key_chat_TextSelectionCursor);
         try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && (!XiaomiUtilities.isMIUI() || Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && !XiaomiUtilities.isMIUI()) {
                 Drawable left = textView.getTextSelectHandleLeft();
                 left.setColorFilter(handleColor, PorterDuff.Mode.SRC_IN);
                 textView.setTextSelectHandleLeft(left);
@@ -258,7 +252,7 @@ public class TranslateAlert2 extends BottomSheet implements NotificationCenter.N
         buttonTextView.setGravity(Gravity.CENTER_HORIZONTAL);
         buttonTextView.setEllipsize(TextUtils.TruncateAt.END);
         buttonTextView.setGravity(Gravity.CENTER);
-        buttonTextView.setTextColor(getThemedColor(Theme.key_featuredStickers_buttonText));
+        buttonTextView.setTextColor(Theme.getColor(Theme.key_featuredStickers_buttonText));
         buttonTextView.setTypeface(AndroidUtilities.bold());
         buttonTextView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14);
         buttonTextView.setText(LocaleController.getString(R.string.CloseTranslation));
@@ -282,35 +276,104 @@ public class TranslateAlert2 extends BottomSheet implements NotificationCenter.N
     }
 
     public void translate() {
-        var textWithEntities = Translator.textWithEntities(reqText == null ? "" : reqText.toString(), reqMessageEntities);
-        Translator.translate(textWithEntities, null, fromLanguage, null, new Translator.TranslateCallBack() {
-            @Override
-            public void onSuccess(TLRPC.TL_textWithEntities translation, String sourceLanguage, String targetLanguage) {
-                AndroidUtilities.runOnUIThread(() -> {
+        if (reqId != null) {
+            ConnectionsManager.getInstance(currentAccount).cancelRequest(reqId, true);
+            reqId = null;
+        }
+
+        final String method = MessagesController.getInstance(currentAccount).translationsManualEnabled;
+        if ("alternative".equalsIgnoreCase(method)) {
+            translateAlt();
+            return;
+        }/* else if ("system".equalsIgnoreCase(method)) {
+            translateSystem();
+            return;
+        }*/
+
+        String lang = toLanguage;
+        if (lang != null) {
+            lang = lang.split("_")[0];
+        }
+        if ("nb".equals(lang)) {
+            lang = "no";
+        }
+
+        TLRPC.TL_textWithEntities textWithEntities = new TLRPC.TL_textWithEntities();
+        textWithEntities.text = reqText == null ? "" : reqText.toString();
+        if (reqMessageEntities != null) {
+            textWithEntities.entities = reqMessageEntities;
+        }
+
+        if (reqSum && reqPeer != null) {
+            TLRPC.TL_messages_summarizeText req = new TLRPC.TL_messages_summarizeText();
+            req.flags |= 1;
+            req.peer = reqPeer;
+            req.id = reqMessageId;
+            req.to_lang = lang;
+            reqId = ConnectionsManager.getInstance(currentAccount).sendRequestTyped(req, AndroidUtilities::runOnUIThread, (res, err) -> {
+                reqId = null;
+                if (err != null && "TRANSLATIONS_DISABLED_ALT".equalsIgnoreCase(err.text)) {
+                    translateAlt();
+                } else if (res != null) {
                     firstTranslation = false;
-                    CharSequence translated = SpannableStringBuilder.valueOf(translation.text);
-                    MessageObject.addEntitiesToText(translated, translation.entities, false, true, false, false);
+                    TLRPC.TL_textWithEntities text = preprocess(textWithEntities, res);
+                    CharSequence translated = SpannableStringBuilder.valueOf(text.text);
+                    MessageObject.addEntitiesToText(translated, text.entities, false, true, false, false);
                     translated = preprocessText(translated);
                     textView.setText(translated);
-                    headerView.fromLanguageTextView.setText(languageName(fromLanguage = sourceLanguage));
                     adapter.updateMainView(textViewContainer);
-                });
-            }
-
-            @Override
-            public void onError(Throwable t) {
-                AndroidUtilities.runOnUIThread(() -> {
-                    String toLangRetry = toLanguage;
-                    Translator.handleTranslationError(containerView.getContext(), t, () -> {
-                        if (!firstTranslation) {
-                            headerView.toLanguageTextView.setText(languageName(toLanguage = toLangRetry));
-                        }
-                        translate();
-                    }, resourcesProvider);
+                } else if (firstTranslation) {
+                    dismiss();
+                    NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.showBulletin, Bulletin.TYPE_ERROR, LocaleController.getString(R.string.TranslationFailedAlert2));
+                } else {
+                    BulletinFactory.of((FrameLayout) containerView, resourcesProvider).createErrorBulletin(LocaleController.getString(R.string.TranslationFailedAlert2)).show();
                     headerView.toLanguageTextView.setText(languageName(toLanguage = prevToLanguage));
                     adapter.updateMainView(textViewContainer);
-                });
-            }
+                }
+            });
+            return;
+        }
+
+        TLRPC.TL_messages_translateText req = new TLRPC.TL_messages_translateText();
+        if (reqPeer != null) {
+            req.flags |= 1;
+            req.peer = reqPeer;
+            req.id.add(reqMessageId);
+        } else {
+            req.flags |= 2;
+            req.text.add(textWithEntities);
+        }
+//        if (fromLanguage != null && !"und".equals(fromLanguage)) {
+//            req.flags |= 4;
+//            req.from_lang = fromLanguage;
+//        }
+        req.to_lang = lang;
+        reqId = ConnectionsManager.getInstance(currentAccount).sendRequest(req, (res, err) -> {
+            AndroidUtilities.runOnUIThread(() -> {
+                reqId = null;
+                if (err != null && "TRANSLATIONS_DISABLED_ALT".equalsIgnoreCase(err.text)) {
+                    translateAlt();
+                } else if (res instanceof TLRPC.TL_messages_translateResult &&
+                    !((TLRPC.TL_messages_translateResult) res).result.isEmpty() &&
+                    ((TLRPC.TL_messages_translateResult) res).result.get(0) != null &&
+                    ((TLRPC.TL_messages_translateResult) res).result.get(0).text != null
+                ) {
+                    firstTranslation = false;
+                    TLRPC.TL_textWithEntities text = preprocess(textWithEntities, ((TLRPC.TL_messages_translateResult) res).result.get(0));
+                    CharSequence translated = SpannableStringBuilder.valueOf(text.text);
+                    MessageObject.addEntitiesToText(translated, text.entities, false, true, false, false);
+                    translated = preprocessText(translated);
+                    textView.setText(translated);
+                    adapter.updateMainView(textViewContainer);
+                } else if (firstTranslation) {
+                    dismiss();
+                    NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.showBulletin, Bulletin.TYPE_ERROR, LocaleController.getString(R.string.TranslationFailedAlert2));
+                } else {
+                    BulletinFactory.of((FrameLayout) containerView, resourcesProvider).createErrorBulletin(LocaleController.getString(R.string.TranslationFailedAlert2)).show();
+                    headerView.toLanguageTextView.setText(languageName(toLanguage = prevToLanguage));
+                    adapter.updateMainView(textViewContainer);
+                }
+            });
         });
     }
 
@@ -866,8 +929,6 @@ public class TranslateAlert2 extends BottomSheet implements NotificationCenter.N
                                 }
                             } else if (fragment != null) {
                                 AlertsCreator.showOpenUrlAlert(fragment, urlSpan.getURL(), false, false);
-                            } else {
-                                Browser.openUrl(view.getContext(), urlSpan.getURL(), true, true);
                             }
                         }
 
@@ -877,7 +938,7 @@ public class TranslateAlert2 extends BottomSheet implements NotificationCenter.N
                             if (!(urlSpan instanceof URLSpanNoUnderline)) {
                                 ds.setUnderlineText(true);
                             }
-                            ds.setColor(getThemedColor(Theme.key_dialogTextLink));
+                            ds.setColor(Theme.getColor(Theme.key_dialogTextLink));
                             ds.setAlpha(alpha);
                         }
                     },
@@ -886,7 +947,7 @@ public class TranslateAlert2 extends BottomSheet implements NotificationCenter.N
                 );
             }
         }
-        return Emoji.replaceEmoji(spannable, textView.getPaint().getFontMetricsInt(), false);
+        return Emoji.replaceEmoji(spannable, textView.getPaint().getFontMetricsInt(), true);
     }
 
     @Override
@@ -1060,7 +1121,6 @@ public class TranslateAlert2 extends BottomSheet implements NotificationCenter.N
     private class HeaderView extends FrameLayout {
 
         private ImageView backButton;
-        private ImageView copyButton;
         private TextView titleTextView;
         private LinearLayout subtitleView;
         private TextView fromLanguageTextView;
@@ -1086,17 +1146,6 @@ public class TranslateAlert2 extends BottomSheet implements NotificationCenter.N
             backButton.setAlpha(0f);
             backButton.setOnClickListener(e -> dismiss());
             addView(backButton, LayoutHelper.createFrame(54, 54, Gravity.TOP, 1, 1, 1, 1));
-
-            copyButton = new ImageView(context);
-            copyButton.setScaleType(ImageView.ScaleType.CENTER);
-            copyButton.setImageResource(R.drawable.msg_copy);
-            copyButton.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_player_actionBarSubtitle), PorterDuff.Mode.MULTIPLY));
-            copyButton.setBackground(Theme.createSelectorDrawable(getThemedColor(Theme.key_listSelector)));
-            copyButton.setOnClickListener(v -> {
-                AndroidUtilities.addToClipboard(textView.getText());
-                BulletinFactory.of((FrameLayout) containerView, resourcesProvider).createCopyBulletin(LocaleController.getString(R.string.TextCopied)).show();
-            });
-            addView(copyButton, LayoutHelper.createFrame(54, 54, Gravity.TOP | Gravity.RIGHT, 1, 1, 16, 1));
 
             titleTextView = new TextView(context) {
                 @Override
@@ -1129,14 +1178,14 @@ public class TranslateAlert2 extends BottomSheet implements NotificationCenter.N
             }
             subtitleView.setPivotX(0);
             subtitleView.setPivotY(0);
-            //if (!TextUtils.isEmpty(fromLanguage) && !"und".equals(fromLanguage)) {
+            if (!TextUtils.isEmpty(fromLanguage) && !"und".equals(fromLanguage)) {
                 fromLanguageTextView = new TextView(context);
                 fromLanguageTextView.setLines(1);
                 fromLanguageTextView.setTextColor(getThemedColor(Theme.key_player_actionBarSubtitle));
                 fromLanguageTextView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14);
                 fromLanguageTextView.setText(capitalFirst(languageName(fromLanguage)));
                 fromLanguageTextView.setPadding(0, dp(2), 0, dp(2));
-            //}
+            }
 
             arrowView = new ImageView(context);
             arrowView.setImageResource(R.drawable.search_arrow);
@@ -1238,29 +1287,44 @@ public class TranslateAlert2 extends BottomSheet implements NotificationCenter.N
 
             final Runnable[] dismiss = new Runnable[1];
 
-            ArrayList<String> targetLanguages = new ArrayList<>(Translator.getCurrentTargetLanguages());
-            targetLanguages.add(0, "app");
-
+            List<String> systemAllLanguages = null;
+//            if ("system".equals(MessagesController.getInstance(currentAccount).translationsManualEnabled)) {
+//                systemAllLanguages = TranslateLanguage.getAllLanguages();
+//            }
+            ArrayList<LocaleController.LocaleInfo> locales = TranslateController.getLocales();
             boolean first = true;
-            int checkedItem = targetLanguages.indexOf(NekoConfig.translationTarget);
-            for (int i = 0; i < targetLanguages.size(); ++i) {
-                String language = targetLanguages.get(i);
-                ActionBarMenuSubItem button = new ActionBarMenuSubItem(getContext(), 2, first, i == targetLanguages.size() - 1, resourcesProvider);
-                button.setText(language.equals("app") ? LocaleController.getString(R.string.TranslationTargetApp) : languageName(language));
-                button.setChecked(i == checkedItem);
+            for (int i = 0; i < locales.size(); ++i) {
+                LocaleController.LocaleInfo localeInfo = locales.get(i);
+
+                if (
+                    localeInfo.pluralLangCode.equals(fromLanguage) ||
+                    !"remote".equals(localeInfo.pathToFile)
+                ) {
+                    continue;
+                }
+                if (
+                    !TextUtils.equals(toLanguage, localeInfo.pluralLangCode) &&
+                    systemAllLanguages != null && !systemAllLanguages.contains(localeInfo.pluralLangCode)
+                ) {
+                    continue;
+                }
+
+                ActionBarMenuSubItem button = new ActionBarMenuSubItem(getContext(), 2, first, i == locales.size() - 1, resourcesProvider);
+                button.setText(capitalFirst(languageName(localeInfo.pluralLangCode)));
+                button.setChecked(TextUtils.equals(toLanguage, localeInfo.pluralLangCode));
                 button.setOnClickListener(e -> {
                     if (dismiss[0] != null) {
                         dismiss[0].run();
                     }
 
-                    if (TextUtils.equals(toLanguage, language)) {
+                    if (TextUtils.equals(toLanguage, localeInfo.pluralLangCode)) {
                         return;
                     }
 
                     if (adapter.mMainView == textViewContainer) {
                         prevToLanguage = toLanguage;
                     }
-                    toLanguageTextView.setText(languageName(toLanguage = language));
+                    toLanguageTextView.setText(capitalFirst(languageName(toLanguage = localeInfo.pluralLangCode)));
                     adapter.updateMainView(loadingTextView);
                     setToLanguage(toLanguage);
                     translate();
@@ -1308,10 +1372,6 @@ public class TranslateAlert2 extends BottomSheet implements NotificationCenter.N
 
             backButton.setTranslationX(AndroidUtilities.lerp(0, dpf2(-25), t));
             backButton.setAlpha(1f - t);
-
-            copyButton.setTranslationX(AndroidUtilities.lerp(dpf2(14), dpf2(8), t));
-            copyButton.setTranslationY(AndroidUtilities.lerp(dpf2(0), dpf2(16), t));
-            copyButton.setColorFilter(ColorUtils.blendARGB(getThemedColor(Theme.key_dialogTextBlack), getThemedColor(Theme.key_player_actionBarSubtitle), t), PorterDuff.Mode.MULTIPLY);
 
             shadow.setTranslationY(AndroidUtilities.lerp(0, dpf2(22), t));
             shadow.setAlpha(1f - t);
@@ -1415,21 +1475,80 @@ public class TranslateAlert2 extends BottomSheet implements NotificationCenter.N
         return builder;
     }
 
+    public static String lowerFirst(String text) {
+        if (text == null || text.length() <= 0) {
+            return null;
+        }
+        return text.substring(0, 1).toLowerCase() + text.substring(1);
+    }
+
+    public static CharSequence lowerFirst(CharSequence text) {
+        if (text == null || text.length() <= 0) {
+            return null;
+        }
+        SpannableStringBuilder builder = text instanceof SpannableStringBuilder ? (SpannableStringBuilder) text : SpannableStringBuilder.valueOf(text);
+        String string = builder.toString();
+        builder.replace(0, 1, string.substring(0, 1).toLowerCase());
+        return builder;
+    }
+
     public static String languageName(String locale) {
-        return languageName(locale, null);
+        return languageName(locale, null, null);
     }
 
     public static String languageName(String locale, boolean[] accusative) {
+        return languageName(locale, accusative, null);
+    }
+
+    public static String languageName(String locale, boolean[] accusative, boolean[] genitive) {
         if (locale == null || locale.equals(TranslateController.UNKNOWN_LANGUAGE) || locale.equals("auto")) {
             return null;
         }
-        String toLang;
-        if (locale.equals("app")) {
-            toLang = LocaleController.getInstance().getCurrentLocaleInfo().name;
-        } else {
-            toLang = Locale.forLanguageTag(locale).getDisplayName();
+
+        String simplifiedLocale = locale.split("_")[0];
+        if ("nb".equals(simplifiedLocale)) {
+            simplifiedLocale = "no";
         }
-        return toLang;
+
+        // getting localized language name in accusative case
+        if (accusative != null) {
+            String localed = LocaleController.getString("TranslateLanguage" + simplifiedLocale.toUpperCase());
+            if (accusative[0] = (localed != null && !localed.startsWith("LOC_ERR"))) {
+                return localed;
+            }
+        }
+        // getting localized language name in genitive case
+        if (genitive != null) {
+            String localed = LocaleController.getString("TranslateLanguageGenitive" + simplifiedLocale.toUpperCase());
+            if (genitive[0] = (localed != null && !localed.startsWith("LOC_ERR"))) {
+                return localed;
+            }
+        }
+
+        // getting language name from system
+        String systemLangName = systemLanguageName(locale);
+        if (systemLangName == null) {
+            systemLangName = systemLanguageName(simplifiedLocale);
+        }
+        if (systemLangName != null) {
+            return systemLangName;
+        }
+
+        // getting language name from lang packs
+        if ("no".equals(locale)) {
+            locale = "nb";
+        }
+        final LocaleController.LocaleInfo currentLanguageInfo = LocaleController.getInstance().getCurrentLocaleInfo();
+        final LocaleController.LocaleInfo thisLanguageInfo = LocaleController.getInstance().getBuiltinLanguageByPlural(locale);
+        if (thisLanguageInfo == null) {
+            return null;
+        }
+        boolean isCurrentLanguageEnglish = currentLanguageInfo != null && "en".equals(currentLanguageInfo.pluralLangCode);
+        if (isCurrentLanguageEnglish) {
+            return thisLanguageInfo.nameEnglish;
+        } else {
+            return thisLanguageInfo.name;
+        }
     }
 
     public static String languageNameCapital(String locale) {
@@ -1589,11 +1708,11 @@ public class TranslateAlert2 extends BottomSheet implements NotificationCenter.N
         return alert;
     }
 
-    public static TranslateAlert2 showAlert(Context context, BaseFragment fragment, int currentAccount, String fromLanguage, String toLanguage, CharSequence text, ArrayList<TLRPC.MessageEntity> entities, boolean noforwards, Utilities.CallbackReturn<URLSpan, Boolean> onLinkPress, Runnable onDismiss, Theme.ResourcesProvider resourcesProvider) {
+    public static TranslateAlert2 showAlert(Context context, BaseFragment fragment, int currentAccount, String fromLanguage, String toLanguage, CharSequence text, ArrayList<TLRPC.MessageEntity> entities, boolean noforwards, Utilities.CallbackReturn<URLSpan, Boolean> onLinkPress, Runnable onDismiss) {
         if (context == null) {
             return null;
         }
-        TranslateAlert2 alert = new TranslateAlert2(context, fromLanguage, toLanguage, text, entities, resourcesProvider) {
+        TranslateAlert2 alert = new TranslateAlert2(context, fromLanguage, toLanguage, text, entities, null) {
             @Override
             public void dismiss() {
                 super.dismiss();
@@ -1616,14 +1735,14 @@ public class TranslateAlert2 extends BottomSheet implements NotificationCenter.N
     }
 
     public static String getToLanguage() {
-        return Translator.getCurrentTargetLanguage();
+        return MessagesController.getGlobalMainSettings().getString("translate_to_language", LocaleController.getInstance().getCurrentLocale().getLanguage());
     }
 
     public static void setToLanguage(String toLang) {
-        NekoConfig.setTranslationTarget(toLang);
+        MessagesController.getGlobalMainSettings().edit().putString("translate_to_language", toLang).apply();
     }
 
     public static void resetToLanguage() {
-        NekoConfig.setTranslationTarget("app");
+        MessagesController.getGlobalMainSettings().edit().remove("translate_to_language").apply();
     }
 }

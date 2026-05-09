@@ -56,11 +56,7 @@ import org.telegram.ui.Stories.recorder.HintView2;
 import java.util.ArrayList;
 import java.util.List;
 
-import tw.fdw.makrotagram.NekoConfig;
-import tw.fdw.makrotagram.settings.NekoLanguagesSelectActivity;
-import tw.fdw.makrotagram.translator.Translator;
-
-public class TranslateButton extends FrameLayout {
+public class TranslateButton extends FrameLayout implements Theme.Colorable {
 
     private final int currentAccount;
     private final long dialogId;
@@ -117,18 +113,19 @@ public class TranslateButton extends FrameLayout {
         menuView.setScaleType(ImageView.ScaleType.CENTER);
         menuView.setImageResource(R.drawable.msg_mini_customize);
         menuView.setOnClickListener(e -> {
-            //final TLRPC.Chat chat = MessagesController.getInstance(currentAccount).getChat(-dialogId);
-            //if (UserConfig.getInstance(currentAccount).isPremium() || chat != null && chat.autotranslation) {
+            final TLRPC.Chat chat = MessagesController.getInstance(currentAccount).getChat(-dialogId);
+            if (UserConfig.getInstance(currentAccount).isPremium() || chat != null && chat.autotranslation) {
                 onMenuClick();
-            //} else {
-            //    onCloseClick();
-            //}
+            } else {
+                onCloseClick();
+            }
         });
         addView(menuView, LayoutHelper.createFrame(30, 30, Gravity.RIGHT | Gravity.CENTER_VERTICAL, 0, 0, 7, 0));
 
         updateColors();
     }
 
+    @Override
     public void updateColors() {
         textView.setTextColor(Theme.getColor(Theme.key_chat_addContact, resourcesProvider));
         textView.setBackground(Theme.createInsetRoundRectDrawable(Theme.getColor(Theme.key_chat_addContact, resourcesProvider) & 0x19ffffff, dp(15), dp(3)));
@@ -237,9 +234,6 @@ public class TranslateButton extends FrameLayout {
                 if (TextUtils.equals(code, detectedLanguage)) {
                     continue;
                 }
-                if (currentTranslateTo != null && currentTranslateTo.equals(code)) {
-                    continue;
-                }
 
                 ActionBarMenuSubItem button = new ActionBarMenuSubItem(getContext(), 2, false, false, resourcesProvider);
                 final boolean checked = currentTranslateTo != null && currentTranslateTo.equals(code);
@@ -303,7 +297,7 @@ public class TranslateButton extends FrameLayout {
             popupLayout.getSwipeBack().openForeground(swipeBackIndex);
         });
 
-        if (detectedLanguageNameAccusative != null) {
+        if (UserConfig.getInstance(currentAccount).isPremium() && detectedLanguageNameAccusative != null) {
             final ActionBarMenuSubItem dontTranslateButton = new ActionBarMenuSubItem(getContext(), false, false, resourcesProvider);
             String text;
             if (accusative[0]) {
@@ -314,7 +308,7 @@ public class TranslateButton extends FrameLayout {
             dontTranslateButton.setMultiline(false);
             dontTranslateButton.setTextAndIcon(HintView2.cutInFancyHalfText(text, dontTranslateButton.getTextView().getPaint()), R.drawable.msg_block2);
             dontTranslateButton.setOnClickListener(e -> {
-                NekoLanguagesSelectActivity.toggleLanguage(detectedLanguage, true);
+                RestrictedLanguagesSelectActivity.toggleLanguage(detectedLanguage, true);
                 translateController.checkRestrictedLanguagesUpdate();
                 translateController.setHideTranslateDialog(dialogId, true);
                 String bulletinTextString;
@@ -329,7 +323,7 @@ public class TranslateButton extends FrameLayout {
                     R.raw.msg_translate,
                     bulletinText,
                     getString(R.string.Settings),
-                    () -> fragment.presentFragment(new NekoLanguagesSelectActivity(NekoLanguagesSelectActivity.TYPE_RESTRICTED))
+                    () -> fragment.presentFragment(new RestrictedLanguagesSelectActivity())
                 ).show();
                 popupWindow.dismiss();
             });
@@ -356,8 +350,7 @@ public class TranslateButton extends FrameLayout {
         });
         popupLayout.addView(hideButton);
 
-        var isCocoon = Translator.PROVIDER_TELEGRAM.equals(NekoConfig.translationProvider);
-        if (isCocoon) popupLayout.addView(new ActionBarPopupWindow.GapView(getContext(), resourcesProvider), LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 8));
+        popupLayout.addView(new ActionBarPopupWindow.GapView(getContext(), resourcesProvider), LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 8));
 
         final LinkSpanDrawable.LinksTextView cocoonButton = new LinkSpanDrawable.LinksTextView(getContext());
         cocoonButton.setPadding(dp(13), dp(8.33f), dp(13), dp(8.33f));
@@ -381,7 +374,7 @@ public class TranslateButton extends FrameLayout {
             popupWindow.dismiss();
             showCocoonAlert(getContext(), resourcesProvider);
         });
-        if (isCocoon) popupLayout.addView(cocoonButton);
+        popupLayout.addView(cocoonButton);
 
         popupWindow.setPauseNotifications(true);
         popupWindow.setDismissAnimationDuration(220);
@@ -419,7 +412,7 @@ public class TranslateButton extends FrameLayout {
             }
             textView.setText(TextUtils.concat(translateIcon, " ", text));
         }
-        //menuView.setImageResource(UserConfig.getInstance(currentAccount).isPremium() || chat != null && chat.autotranslation ? R.drawable.msg_mini_customize : R.drawable.msg_close);
+        menuView.setImageResource(UserConfig.getInstance(currentAccount).isPremium() || chat != null && chat.autotranslation ? R.drawable.msg_mini_customize : R.drawable.msg_close);
     }
 
     public static void showCocoonAlert(Context context, Theme.ResourcesProvider resourcesProvider) {
