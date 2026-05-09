@@ -4656,7 +4656,6 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                     presentFragment(new ArchiveSettingsActivity());
                 }
 
-                @Override
                 public boolean onAccessibilityAction(DialogCell cell, int action, Bundle arguments) {
                     var dialogId = cell.getDialogId();
                     var dialog = getMessagesController().dialogs_dict.get(dialogId);
@@ -4693,7 +4692,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                         performSelectedDialogsAction(dialogs, block, true, false);
                         return true;
                     }
-                    return super.onAccessibilityAction(cell, action, arguments);
+                    return false;
                 }
 
                 @Override
@@ -8042,7 +8041,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                         List<BaseFragment> rightFragments = launchActivity.getRightActionBarLayout().getFragmentStack();
                         if (!rightFragments.isEmpty()) {
                             if (rightFragments.size() == 1 && rightFragments.get(rightFragments.size() - 1) instanceof ChatActivity) {
-                                ((ChatActivity) rightFragments.get(rightFragments.size() - 1)).onPageDownClicked(false);
+                                ((ChatActivity) rightFragments.get(rightFragments.size() - 1)).onPageDownClicked();
                             } else if (rightFragments.size() == 2) {
                                 launchActivity.getRightActionBarLayout().closeLastFragment();
                             } else if (getParentActivity() instanceof LaunchActivity) {

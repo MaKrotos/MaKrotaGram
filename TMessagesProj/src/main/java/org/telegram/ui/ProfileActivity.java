@@ -7412,20 +7412,20 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                             BulletinFactory.of(this).createCopyBulletin(LocaleController.getString(R.string.TextCopied)).show();
                         }
                     })
-                    .addIf(withTranslate[0], R.drawable.msg_translate, getString(R.string.TranslateMessage), () -> {
-                        if (!AndroidUtilities.isContextSafe(getContext())) return;
-                        TranslateAlert2.showAlert(getContext(), this, currentAccount, fromLanguage[0], toLang, finalText, null, false, span -> {
-                            if (span != null) {
-                                openUrl(span.getURL(), null);
-                                return true;
-                            }
-                            return false;
-                        }, null);
-//                        new TranslateAlert3(getContext(), getResourceProvider())
-//                            .setText(fromLanguage[0], finalText)
-//                            .setToLanguage(toLang)
-//                            .show();
-                    })
+                        .addIf(withTranslate[0], R.drawable.msg_translate, getString(R.string.TranslateMessage), () -> {
+                            if (!AndroidUtilities.isContextSafe(getContext())) return;
+                            TranslateAlert2.showAlert(getContext(), this, currentAccount, fromLanguage[0], toLang, finalText, null, false, span -> {
+                                if (span != null) {
+                                    openUrl(span.getURL(), null);
+                                    return true;
+                                }
+                                return false;
+                            }, null, getResourceProvider());
+//  new TranslateAlert3(getContext(), getResourceProvider())
+//      .setText(fromLanguage[0], finalText)
+//      .setToLanguage(toLang)
+//      .show();
+                        })
                     .show();
             };
             if (withTranslate[0]) {

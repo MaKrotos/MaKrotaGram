@@ -1044,11 +1044,11 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
         FloatingDebugController.setActive(this, SharedConfig.isFloatingDebugActive, false);
     }
 
-    public void addOnUserLeaveHintListener(Runnable callback) {
+    public void nekoAddOnUserLeaveHintListener(Runnable callback) {
         onUserLeaveHintListeners.add(callback);
     }
 
-    public void removeOnUserLeaveHintListener(Runnable callback) {
+    public void nekoRemoveOnUserLeaveHintListener(Runnable callback) {
         onUserLeaveHintListeners.remove(callback);
     }
 
@@ -6890,7 +6890,7 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
 
     public static Runnable whenResumed;
 
-    private void invalidateTabletMode() {
+    public void invalidateTabletMode() {
         Boolean wasTablet = AndroidUtilities.getWasTablet();
         if (wasTablet == null) {
             return;

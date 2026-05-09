@@ -111,6 +111,7 @@ public class ChatAttachAlertDocumentLayout extends ChatAttachAlert.AttachAlertLa
     public final static int TYPE_DEFAULT = 0;
     public final static int TYPE_MUSIC = 1;
     public final static int TYPE_RINGTONE = 2;
+    public final static int TYPE_EMOJI = 3;
 
     private int type;
 
@@ -152,6 +153,7 @@ public class ChatAttachAlertDocumentLayout extends ChatAttachAlert.AttachAlertLa
     private boolean allowMusic;
 
     private boolean searching;
+    public boolean isEmojiPicker;
 
     private boolean sortByName;
 
@@ -196,6 +198,10 @@ public class ChatAttachAlertDocumentLayout extends ChatAttachAlert.AttachAlertLa
             }
         }
     };
+
+    public boolean isEmojiFont(File file) {
+        return file.getName().toLowerCase().endsWith(".ttf") || file.getName().toLowerCase().endsWith(".otf");
+    }
 
     public ChatAttachAlertDocumentLayout(ChatAttachAlert alert, Context context, int type, Theme.ResourcesProvider resourcesProvider) {
         super(alert, context, resourcesProvider);

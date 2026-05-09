@@ -259,10 +259,6 @@ public class ChatAttachAlertPhotoLayout extends ChatAttachAlert.AttachAlertLayou
     }
 
     private class BasePhotoProvider extends PhotoViewer.EmptyPhotoViewerProvider {
-        @Override
-        public void spoilerPressed() {
-            onMenuItemClick(spoiler_update);
-        }
 
         @Override
         public boolean isPhotoChecked(int index) {
