@@ -330,4 +330,23 @@
     <string name="AutoReplyEnabled">Включить автоответы</string>
     <string name="AutoReplyDelay">Задержка (минуты)</string>
     <string name="AutoReplyHistoryCount">Сообщений из истории</string>
+    <string name="UserPromptSettings">Prompt Settings</string>
+    <string name="PromptHint">Enter prompt...</string>
+    <string name="EditPrompt">Edit Prompt</string>
+    <string name="PromptText">Prompt Text</string>
+    <string name="NotSet">Not set</string>
+    <string name="PromptInfo">This prompt will be used to guide the AI.</string>
+    <string name="PromptSettingsSection">Prompt Settings</string>
+    <string name="EmojiUseDefault">Use default emojis</string>
+    <string name="AISettings">AI Settings</string>
+    <string name="BackgroundHexColorCode">Background Hex Color Code</string>
+    <string name="BackgroundBrightness">Background Brightness</string>
+    <string name="Magic">Magic</string>
+    <string name="SelectedMessages">Selected Messages: %d</string>
+    <string name="Thinking">Thinking...</string>
+    <string name="ApiKeyNotFound">API Key Not Found</string>
+    <string name="ApiKeyNotFoundDesc">Please provide your API key in settings.</string>
+    <string name="ResponseProcessingError">Error processing response</string>
+    <string name="Use">Use</string>
+    <string name="FeatureComingSoon">Feature coming soon</string>
 </resources>
