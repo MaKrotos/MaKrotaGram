@@ -401,18 +401,18 @@ public class ModelManagerFragment extends BaseFragment {
         final List<Runnable> actions = new ArrayList<>();
         DownloadStatus status = download.getStatus();
         if (status == DownloadStatus.RUNNING || status == DownloadStatus.PENDING) {
-            items.add("Пауза");
+            items.add(LocaleController.getString(LocaleController.getStringResId("Pause")));
             actions.add(() -> new Thread(() -> downloadManager.pauseDownload(download.getId())).start());
         } else if (status == DownloadStatus.PAUSED) {
-            items.add("Возобновить");
+            items.add(LocaleController.getString(LocaleController.getStringResId("Resume")));
             actions.add(() -> new Thread(() -> downloadManager.resumeDownload(download.getId())).start());
         }
         // Отмена доступна всегда
-        items.add("Отменить");
+        items.add(LocaleController.getString(LocaleController.getStringResId("Cancel")));
         actions.add(() -> new Thread(() -> downloadManager.cancelDownload(download.getId(), true)).start());
 
         AlertDialog.Builder builder = new AlertDialog.Builder(getParentActivity());
-        builder.setTitle("Управление загрузкой");
+        builder.setTitle(LocaleController.getString(LocaleController.getStringResId("ManageDownload")));
         builder.setItems(items.toArray(new String[0]), (dialog, which) -> {
             if (which >= 0 && which < actions.size()) {
                 actions.get(which).run();
@@ -423,14 +423,14 @@ public class ModelManagerFragment extends BaseFragment {
 
     private void showDownloadDialog(ModelItem model) {
         // Диалог выбора типа сети
-        String[] networkOptions = new String[]{"Только Wi-Fi", "Любая сеть"};
+        String[] networkOptions = new String[]{LocaleController.getString(LocaleController.getStringResId("WifiOnly")), LocaleController.getString(LocaleController.getStringResId("AnyNetwork"))};
         AlertDialog.Builder builder = new AlertDialog.Builder(getParentActivity());
-        builder.setTitle("Скачать модель " + model.getName());
+        builder.setTitle(LocaleController.getString(LocaleController.getStringResId("DownloadModel")) + " " + model.getName());
         builder.setItems(networkOptions, (dialog, which) -> {
             NetworkType networkType = (which == 0) ? NetworkType.WIFI : NetworkType.ANY;
             startDownload(model, networkType);
         });
-        builder.setNegativeButton("Отмена", null);
+        builder.setNegativeButton(LocaleController.getString(LocaleController.getStringResId("Cancel")), null);
         builder.show();
     }
 
@@ -478,9 +478,9 @@ public class ModelManagerFragment extends BaseFragment {
 
     private void showSelectDialog(ModelEntity model) {
         AlertDialog.Builder builder = new AlertDialog.Builder(getParentActivity());
-        builder.setTitle("Выбрать модель");
-        builder.setMessage("Использовать модель " + model.getName() + " для работы с Local AI?");
-        builder.setPositiveButton("Выбрать", (dialog, which) -> {
+        builder.setTitle(LocaleController.getString(LocaleController.getStringResId("SelectModel")));
+        builder.setMessage(LocaleController.formatString(LocaleController.getStringResId("UseModelForLocalAI"), model.getName()));
+        builder.setPositiveButton(LocaleController.getString(LocaleController.getStringResId("Select")), (dialog, which) -> {
             // Установить путь к модели в настройках Local AI
             LocalAISettings settings = (LocalAISettings) new AISettings(UserConfig.selectedAccount).getServiceSettings(AISettings.AIServiceType.LOCAL_AI);
             settings.setModelPath(model.getPath());
@@ -493,21 +493,21 @@ public class ModelManagerFragment extends BaseFragment {
                 finishFragment();
             }
         });
-        builder.setNeutralButton("Удалить", (dialog, which) -> {
+        builder.setNeutralButton(LocaleController.getString(LocaleController.getStringResId("Delete")), (dialog, which) -> {
             showDeleteConfirmation(model);
         });
-        builder.setNegativeButton("Отмена", null);
+        builder.setNegativeButton(LocaleController.getString(LocaleController.getStringResId("Cancel")), null);
         builder.show();
     }
 
     private void showDeleteConfirmation(ModelEntity model) {
         AlertDialog.Builder builder = new AlertDialog.Builder(getParentActivity());
-        builder.setTitle("Удаление модели");
-        builder.setMessage("Вы уверены, что хотите удалить модель " + model.getName() + "? Файл будет удален с устройства.");
-        builder.setPositiveButton("Удалить", (dialog, which) -> {
+        builder.setTitle(LocaleController.getString(LocaleController.getStringResId("DeleteModel")));
+        builder.setMessage(LocaleController.formatString(LocaleController.getStringResId("DeleteModelConfirm"), model.getName()));
+        builder.setPositiveButton(LocaleController.getString(LocaleController.getStringResId("Delete")), (dialog, which) -> {
             deleteModel(model);
         });
-        builder.setNegativeButton("Отмена", null);
+        builder.setNegativeButton(LocaleController.getString(LocaleController.getStringResId("Cancel")), null);
         builder.show();
     }
 

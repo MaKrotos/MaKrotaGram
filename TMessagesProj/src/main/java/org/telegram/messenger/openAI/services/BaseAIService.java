@@ -569,7 +569,7 @@ public abstract class BaseAIService {
     }
 
     public void generateSuggestions(ArrayList<MessageObject> messages, String userPrompt, String styleId,
-                                    List<ChatMessage> chatHistory, Callback callback) {
+                                     List<ChatMessage> chatHistory, Callback callback) {
         if (!hasValidConfig()) {
             callback.onError(getServiceName() + " is not configured. Please check settings.");
             return;
@@ -585,7 +585,16 @@ public abstract class BaseAIService {
 
             // Вычисляем ID собеседника для enhanced системного промпта
             long interlocutorId = getInterlocutorId(messages);
+            
+            // Если есть история анализа, мы должны использовать её для контекста.
+            // В этом случае мы можем дополнить системный промпт указанием на то, что
+            // предложения должны основываться на результатах анализа.
             String systemPrompt = getEnhancedSystemPrompt(interlocutorId, styleId);
+            if (chatHistory != null && !chatHistory.isEmpty()) {
+                systemPrompt += "\n\nIMPORTANT: The conversation history below includes a 'PREVIOUS ANALYSIS DIALOGUE'. " +
+                                "Your suggestions MUST take into account the insights and conclusions from that analysis " +
+                                "to be as relevant and helpful as possible.";
+            }
 
             // Формируем историю переписки с учётом истории чата анализатора
             String conversationHistory = buildConversationHistory(messages, userPrompt, interlocutorId, chatHistory);

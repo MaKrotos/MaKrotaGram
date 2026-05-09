@@ -12,6 +12,7 @@ import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.SeekBar;
 import android.widget.TextView;
+import android.widget.Toast;
 import android.os.Build;
 import android.content.res.ColorStateList;
 import org.telegram.messenger.AndroidUtilities;
@@ -36,6 +37,8 @@ import java.util.Map;
 
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 public class ServiceSettingsFragment extends BaseFragment {
 
@@ -184,6 +187,11 @@ public class ServiceSettingsFragment extends BaseFragment {
             showModelPathDialog(definition);
             return;
         }
+        // Special handling for Ollama model selection
+        if (serviceType == AISettings.AIServiceType.OLLAMA && "model".equals(definition.getKey())) {
+            showOllamaModelDialog(definition);
+            return;
+        }
         switch (definition.getType()) {
             case STRING:
                 showStringDialog(definition);
@@ -213,7 +221,7 @@ public class ServiceSettingsFragment extends BaseFragment {
 
         LinearLayout layout = new LinearLayout(getParentActivity());
         layout.setOrientation(LinearLayout.VERTICAL);
-        layout.setPadding(AndroidUtilities.dp(24), AndroidUtilities.dp(8), AndroidUtilities.dp(24), AndroidUtilities.dp(8));
+        layout.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(12), AndroidUtilities.dp(16), AndroidUtilities.dp(12));
 
         EditTextBoldCursor editText = new EditTextBoldCursor(getParentActivity());
         editText.setText(currentValue);
@@ -221,7 +229,7 @@ public class ServiceSettingsFragment extends BaseFragment {
             editText.setSelection(currentValue.length());
         }
         editText.setHint(definition.getDescription());
-        editText.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8));
+        editText.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(12), AndroidUtilities.dp(12), AndroidUtilities.dp(12));
         editText.setTextSize(16);
         editText.setBackgroundDrawable(Theme.createEditTextDrawable(getParentActivity(), true));
         editText.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
@@ -261,12 +269,12 @@ public class ServiceSettingsFragment extends BaseFragment {
 
         LinearLayout layout = new LinearLayout(getParentActivity());
         layout.setOrientation(LinearLayout.VERTICAL);
-        layout.setPadding(AndroidUtilities.dp(24), AndroidUtilities.dp(8), AndroidUtilities.dp(24), AndroidUtilities.dp(8));
+        layout.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(12), AndroidUtilities.dp(16), AndroidUtilities.dp(12));
 
         EditTextBoldCursor editText = new EditTextBoldCursor(getParentActivity());
         editText.setText(currentStr);
         editText.setHint(definition.getDescription());
-        editText.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8));
+        editText.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(12), AndroidUtilities.dp(12), AndroidUtilities.dp(12));
         editText.setTextSize(16);
         editText.setBackgroundDrawable(Theme.createEditTextDrawable(getParentActivity(), true));
         editText.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
@@ -340,13 +348,14 @@ public class ServiceSettingsFragment extends BaseFragment {
 
         LinearLayout layout = new LinearLayout(getParentActivity());
         layout.setOrientation(LinearLayout.VERTICAL);
-        layout.setPadding(AndroidUtilities.dp(24), AndroidUtilities.dp(8), AndroidUtilities.dp(24), AndroidUtilities.dp(8));
+        layout.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(12), AndroidUtilities.dp(16), AndroidUtilities.dp(12));
 
         // Текстовое поле для отображения значения
         TextView valueText = new TextView(getParentActivity());
         valueText.setTextSize(18);
         valueText.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
-        valueText.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8));
+        valueText.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(8), AndroidUtilities.dp(12), AndroidUtilities.dp(8));
+        valueText.setGravity(android.view.Gravity.CENTER);
         valueText.setText(isInteger ? String.valueOf((int) currentFloat) : String.format("%.2f", currentFloat));
 
         // SeekBar (работает только с целыми числами, преобразуем диапазон)
@@ -355,7 +364,7 @@ public class ServiceSettingsFragment extends BaseFragment {
         // Преобразуем значение в прогресс
         int progress = (int) ((currentFloat - min) / (max - min) * 1000);
         seekBar.setProgress(progress);
-        seekBar.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8));
+        seekBar.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(12), AndroidUtilities.dp(12), AndroidUtilities.dp(12));
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             seekBar.setProgressTintList(ColorStateList.valueOf(Theme.getColor(Theme.key_player_progress)));
             seekBar.setProgressBackgroundTintList(ColorStateList.valueOf(Theme.getColor(Theme.key_player_progressBackground)));
@@ -365,7 +374,7 @@ public class ServiceSettingsFragment extends BaseFragment {
         EditTextBoldCursor editText = new EditTextBoldCursor(getParentActivity());
         editText.setText(isInteger ? String.valueOf((int) currentFloat) : String.format("%.2f", currentFloat));
         editText.setHint(definition.getDescription());
-        editText.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8));
+        editText.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(12), AndroidUtilities.dp(12), AndroidUtilities.dp(12));
         editText.setTextSize(16);
         editText.setBackgroundDrawable(Theme.createEditTextDrawable(getParentActivity(), true));
         editText.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
@@ -487,7 +496,7 @@ public class ServiceSettingsFragment extends BaseFragment {
 
         LinearLayout container = new LinearLayout(getParentActivity());
         container.setOrientation(LinearLayout.VERTICAL);
-        container.setPadding(AndroidUtilities.dp(24), AndroidUtilities.dp(8), AndroidUtilities.dp(24), AndroidUtilities.dp(8));
+        container.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(12), AndroidUtilities.dp(16), AndroidUtilities.dp(12));
 
         RecyclerListView listView = new RecyclerListView(getParentActivity());
         ChoiceAdapter adapter = new ChoiceAdapter(choices, selectedIndex);
@@ -519,6 +528,103 @@ public class ServiceSettingsFragment extends BaseFragment {
     private void showModelPathDialog(SettingDefinition definition) {
         // Immediately open ModelManagerFragment in selection mode
         presentFragment(ModelManagerFragment.newInstanceForSelection());
+    }
+
+    private void showOllamaModelDialog(SettingDefinition definition) {
+        OllamaService ollamaService = (OllamaService) AIServiceFactory.createService(AISettings.AIServiceType.OLLAMA, currentAccount);
+        
+        AlertDialog.Builder builder = new AlertDialog.Builder(getParentActivity());
+        builder.setTitle(definition.getTitle());
+        builder.setMessage("Загрузить список доступных моделей с сервера Ollama?");
+        
+        builder.setPositiveButton(LocaleController.getString("Fetch", R.string.OK), (dialog, which) -> {
+            builder.setMessage("Загрузка моделей...");
+            ollamaService.fetchRemoteModels(new BaseAIService.Callback() {
+                @Override
+                public void onSuccess(JSONObject response) {
+                    AndroidUtilities.runOnUIThread(() -> {
+                        try {
+                            JSONArray models = response.optJSONArray("models");
+                            if (models == null) {
+                                Toast.makeText(getParentActivity(), "Список моделей пуст", Toast.LENGTH_SHORT).show();
+                                return;
+                            }
+                            List<String> choices = new ArrayList<>();
+                            for (int i = 0; i < models.length(); i++) {
+                                String modelName = models.optString(i);
+                                if (!TextUtils.isEmpty(modelName)) {
+                                    choices.add(modelName);
+                                }
+                            }
+                            
+                            if (choices.isEmpty()) {
+                                Toast.makeText(getParentActivity(), "Модели не найдены", Toast.LENGTH_SHORT).show();
+                                return;
+                            }
+                            
+                            // Show a second dialog with the list of models
+                            showOllamaModelChoiceDialog(definition, choices);
+                        } catch (Exception e) {
+                            Toast.makeText(getParentActivity(), "Ошибка парсинга моделей: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                        }
+                    });
+                }
+
+                @Override
+                public void onError(String error) {
+                    AndroidUtilities.runOnUIThread(() -> {
+                        Toast.makeText(getParentActivity(), "Ошибка: " + error, Toast.LENGTH_LONG).show();
+                    });
+                }
+            });
+        });
+        builder.setNegativeButton(LocaleController.getString("Cancel", R.string.Cancel), (dialog, which) -> {
+            showStringDialog(definition);
+        });
+        builder.show();
+    }
+
+    private void showOllamaModelChoiceDialog(SettingDefinition definition, List<String> choices) {
+        String currentValue = (String) serviceSettings.getValue(definition.getKey());
+        if (currentValue == null) {
+            currentValue = definition.getStringDefault();
+        }
+        
+        int selectedIndex = choices.indexOf(currentValue);
+        if (selectedIndex < 0) selectedIndex = 0;
+
+        final int[] selectedIndexHolder = new int[]{selectedIndex};
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(getParentActivity());
+        builder.setTitle(definition.getTitle());
+
+        LinearLayout container = new LinearLayout(getParentActivity());
+        container.setOrientation(LinearLayout.VERTICAL);
+        container.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(12), AndroidUtilities.dp(16), AndroidUtilities.dp(12));
+
+        RecyclerListView listView = new RecyclerListView(getParentActivity());
+        ChoiceAdapter adapter = new ChoiceAdapter(choices, selectedIndex);
+        listView.setLayoutManager(new LinearLayoutManager(getParentActivity(), LinearLayoutManager.VERTICAL, false));
+        listView.setAdapter(adapter);
+        listView.setVerticalScrollBarEnabled(false);
+        listView.setPadding(0, AndroidUtilities.dp(8), 0, AndroidUtilities.dp(8));
+        listView.setOnItemClickListener((view, position) -> {
+            selectedIndexHolder[0] = position;
+            adapter.setSelectedIndex(position);
+        });
+
+        container.addView(listView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 0));
+
+        builder.setView(container);
+        builder.setPositiveButton(LocaleController.getString("OK", R.string.OK), (dialog, which) -> {
+            if (selectedIndexHolder[0] >= 0 && selectedIndexHolder[0] < choices.size()) {
+                String newValue = choices.get(selectedIndexHolder[0]);
+                serviceSettings.setValue(definition.getKey(), newValue);
+                listAdapter.notifyDataSetChanged();
+            }
+        });
+        builder.setNegativeButton(LocaleController.getString("Cancel", R.string.Cancel), null);
+        builder.show();
     }
 
     private class ChoiceAdapter extends RecyclerListView.SelectionAdapter {
@@ -579,6 +685,7 @@ public class ServiceSettingsFragment extends BaseFragment {
                 TextSettingsCell textCell = (TextSettingsCell) holder.itemView;
                 Object value = serviceSettings.getValue(def.getKey());
                 String displayValue = formatValue(def, value);
+                // Используем setTextAndValue, но убеждаемся, что TextSettingsCell корректно обрабатывает перенос
                 textCell.setTextAndValue(def.getTitle(), displayValue, true);
             } else if (manageModelsRow != -1 && position == manageModelsRow) {
                 TextSettingsCell textCell = (TextSettingsCell) holder.itemView;

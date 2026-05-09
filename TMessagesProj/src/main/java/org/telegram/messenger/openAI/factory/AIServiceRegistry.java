@@ -49,6 +49,11 @@ public class AIServiceRegistry {
                 "Local AI",
                 "Локальные модели через sugar-pocketAI (Gemma, Qwen и др.)"
         ));
+        SERVICES.add(new ServiceInfo(
+                AISettings.AIServiceType.OLLAMA,
+                "Ollama",
+                "Локальный сервер Ollama (OpenAI-совместимый API)"
+        ));
     }
 
     /**

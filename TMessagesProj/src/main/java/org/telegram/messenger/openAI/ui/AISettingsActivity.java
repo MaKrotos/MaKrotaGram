@@ -25,6 +25,7 @@ import java.util.function.Consumer;
 
 import org.telegram.messenger.openAI.models.AIStyle;
 import org.telegram.messenger.openAI.AIStyleService;
+import org.json.JSONObject;
 
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -205,8 +206,28 @@ public class AISettingsActivity extends BaseFragment {
             return;
         }
 
-        // TODO: Реализовать тестовое соединение
-        showAlertWithOk("Тест соединения", "Функция в разработке");
+        BaseAIService service = AIServiceFactory.createService(selected, currentAccount);
+        if (selected == AISettings.AIServiceType.OLLAMA && service instanceof OllamaService) {
+            OllamaService ollamaService = (OllamaService) service;
+            ollamaService.testConnection(new BaseAIService.Callback() {
+                @Override
+                public void onSuccess(JSONObject response) {
+                    AndroidUtilities.runOnUIThread(() -> {
+                        showAlertWithOk("Успех", "Соединение с Ollama установлено успешно!");
+                    });
+                }
+
+                @Override
+                public void onError(String error) {
+                    AndroidUtilities.runOnUIThread(() -> {
+                        showAlertWithOk("Ошибка соединения", error);
+                    });
+                }
+            });
+        } else {
+            // Для других сервисов пока оставляем заглушку или реализуем аналогично
+            showAlertWithOk("Тест соединения", "Функция теста для данного сервиса в разработке");
+        }
     }
 
     private void editPrompt() {
@@ -215,15 +236,16 @@ public class AISettingsActivity extends BaseFragment {
 
         LinearLayout container = new LinearLayout(getParentActivity());
         container.setOrientation(LinearLayout.VERTICAL);
-        container.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8));
+        container.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(12), AndroidUtilities.dp(12), AndroidUtilities.dp(12));
 
-        EditText editText = new EditText(getParentActivity());
+        org.telegram.ui.Components.EditTextBoldCursor editText = new org.telegram.ui.Components.EditTextBoldCursor(getParentActivity());
         editText.setHint("Введите ваш промпт...");
         editText.setText(aiSettings.getSystemPrompt() != null ? aiSettings.getSystemPrompt() : "");
         editText.setMinLines(3);
         editText.setMaxLines(6);
         editText.setVerticalScrollBarEnabled(true);
-        editText.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite));
+        editText.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(12), AndroidUtilities.dp(12), AndroidUtilities.dp(12));
+        editText.setBackgroundDrawable(Theme.createEditTextDrawable(getParentActivity(), true));
         editText.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
         editText.setHintTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteHintText));
 
@@ -247,7 +269,7 @@ public class AISettingsActivity extends BaseFragment {
 
         LinearLayout container = new LinearLayout(getParentActivity());
         container.setOrientation(LinearLayout.VERTICAL);
-        container.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8));
+        container.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(12), AndroidUtilities.dp(12), AndroidUtilities.dp(12));
 
         RecyclerListView listView = new RecyclerListView(getParentActivity());
         listView.setLayoutManager(new LinearLayoutManager(getParentActivity(), LinearLayoutManager.VERTICAL, false));
@@ -307,7 +329,7 @@ public class AISettingsActivity extends BaseFragment {
 
         LinearLayout container = new LinearLayout(getParentActivity());
         container.setOrientation(LinearLayout.VERTICAL);
-        container.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8));
+        container.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(12), AndroidUtilities.dp(12), AndroidUtilities.dp(12));
 
         RecyclerListView listView = new RecyclerListView(getParentActivity());
         listView.setLayoutManager(new LinearLayoutManager(getParentActivity(), LinearLayoutManager.VERTICAL, false));
@@ -384,13 +406,14 @@ public class AISettingsActivity extends BaseFragment {
 
         LinearLayout container = new LinearLayout(getParentActivity());
         container.setOrientation(LinearLayout.VERTICAL);
-        container.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8));
+        container.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(12), AndroidUtilities.dp(12), AndroidUtilities.dp(12));
 
-        EditText editText = new EditText(getParentActivity());
+        org.telegram.ui.Components.EditTextBoldCursor editText = new org.telegram.ui.Components.EditTextBoldCursor(getParentActivity());
         editText.setHint("Введите число");
         editText.setText(String.valueOf(initialValue));
         editText.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);
-        editText.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite));
+        editText.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(12), AndroidUtilities.dp(12), AndroidUtilities.dp(12));
+        editText.setBackgroundDrawable(Theme.createEditTextDrawable(getParentActivity(), true));
         editText.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
         editText.setHintTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteHintText));
 

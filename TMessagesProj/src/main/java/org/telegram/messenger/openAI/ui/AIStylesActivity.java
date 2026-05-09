@@ -141,20 +141,20 @@ public class AIStylesActivity extends BaseFragment {
 
     private void showAddStyleDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(getParentActivity());
-        builder.setTitle("Добавить стиль");
+        builder.setTitle(LocaleController.getString(LocaleController.getStringResId("AddStyle")));
 
         LinearLayout container = new LinearLayout(getParentActivity());
         container.setOrientation(LinearLayout.VERTICAL);
-        container.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8));
+        container.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(12), AndroidUtilities.dp(12), AndroidUtilities.dp(12));
 
-        EditText nameEdit = new EditText(getParentActivity());
-        nameEdit.setHint("Название стиля");
+        org.telegram.ui.Components.EditTextBoldCursor nameEdit = new org.telegram.ui.Components.EditTextBoldCursor(getParentActivity());
+        nameEdit.setHint(LocaleController.getString(LocaleController.getStringResId("StyleName")));
         nameEdit.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite));
         nameEdit.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
         nameEdit.setHintTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteHintText));
 
-        EditText promptEdit = new EditText(getParentActivity());
-        promptEdit.setHint("Промпт стиля (например: Отвечай официально)");
+        org.telegram.ui.Components.EditTextBoldCursor promptEdit = new org.telegram.ui.Components.EditTextBoldCursor(getParentActivity());
+        promptEdit.setHint(LocaleController.getString(LocaleController.getStringResId("StylePrompt")));
         promptEdit.setMinLines(3);
         promptEdit.setMaxLines(6);
         promptEdit.setVerticalScrollBarEnabled(true);
@@ -186,22 +186,22 @@ public class AIStylesActivity extends BaseFragment {
     private void showEditStyleDialog(AIStyle style) {
         boolean isCustom = style.isCustom();
         AlertDialog.Builder builder = new AlertDialog.Builder(getParentActivity());
-        builder.setTitle(isCustom ? "Редактировать стиль" : "Просмотр стиля");
+        builder.setTitle(isCustom ? LocaleController.getString(LocaleController.getStringResId("EditStyle")) : LocaleController.getString(LocaleController.getStringResId("ViewStyle")));
 
         LinearLayout container = new LinearLayout(getParentActivity());
         container.setOrientation(LinearLayout.VERTICAL);
-        container.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8));
+        container.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(12), AndroidUtilities.dp(12), AndroidUtilities.dp(12));
 
-        EditText nameEdit = new EditText(getParentActivity());
-        nameEdit.setHint("Название стиля");
+        org.telegram.ui.Components.EditTextBoldCursor nameEdit = new org.telegram.ui.Components.EditTextBoldCursor(getParentActivity());
+        nameEdit.setHint(LocaleController.getString(LocaleController.getStringResId("StyleName")));
         nameEdit.setText(style.getName());
         nameEdit.setEnabled(isCustom);
         nameEdit.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite));
         nameEdit.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
         nameEdit.setHintTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteHintText));
 
-        EditText promptEdit = new EditText(getParentActivity());
-        promptEdit.setHint("Промпт стиля");
+        org.telegram.ui.Components.EditTextBoldCursor promptEdit = new org.telegram.ui.Components.EditTextBoldCursor(getParentActivity());
+        promptEdit.setHint(LocaleController.getString(LocaleController.getStringResId("StylePrompt")));
         promptEdit.setText(style.getPrompt());
         promptEdit.setEnabled(isCustom);
         promptEdit.setMinLines(3);
@@ -230,7 +230,7 @@ public class AIStylesActivity extends BaseFragment {
                     }
                 }
             });
-            builder.setNeutralButton("Удалить", (dialog, which) -> {
+            builder.setNeutralButton(LocaleController.getString(LocaleController.getStringResId("Delete")), (dialog, which) -> {
                 styleService.deleteCustomStyle(style);
                 loadStyles();
                 updateRows();

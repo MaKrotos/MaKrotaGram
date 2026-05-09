@@ -29,6 +29,7 @@ public class AISettings {
         OPENAI("OpenAI"),
         GEMINI("Google Gemini"),
         LOCAL_AI("Local AI"),
+        OLLAMA("Ollama"),
         CUSTOM("Custom API");
         
         private final String displayName;
@@ -91,6 +92,7 @@ public class AISettings {
         serviceSettingsMap.put(AIServiceType.OPENAI, new OpenAISettings(currentAccount));
         serviceSettingsMap.put(AIServiceType.GEMINI, new GeminiSettings(currentAccount));
         serviceSettingsMap.put(AIServiceType.LOCAL_AI, new LocalAISettings(currentAccount));
+        serviceSettingsMap.put(AIServiceType.OLLAMA, new OllamaSettings(currentAccount));
     }
     
     
@@ -127,6 +129,9 @@ public class AISettings {
                     break;
                 case LOCAL_AI:
                     settings = new LocalAISettings(currentAccount);
+                    break;
+                case OLLAMA:
+                    settings = new OllamaSettings(currentAccount);
                     break;
                 default:
                     settings = new OpenAISettings(currentAccount);

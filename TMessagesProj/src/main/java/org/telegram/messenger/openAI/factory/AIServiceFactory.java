@@ -26,6 +26,8 @@ public class AIServiceFactory {
                 return new GeminiService(account);
             case LOCAL_AI:
                 return new LocalAIService(account);
+            case OLLAMA:
+                return new OllamaService(account);
             default:
                 return new OpenAIService(account);
         }
