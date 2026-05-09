@@ -107,6 +107,8 @@ import android.widget.LinearLayout;
 import android.widget.Space;
 import android.widget.TextView;
 
+import org.telegram.ui.MagicActivity;
+
 import androidx.annotation.DrawableRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -1572,6 +1574,7 @@ public class ChatActivity extends BaseFragment implements
     private final static int bot_settings = 31;
     private final static int call = 32;
     private final static int video_call = 33;
+    private final static int magic = 34;
 
     private final static int attach_photo = 0;
     private final static int attach_gallery = 1;
@@ -3762,6 +3765,8 @@ public class ChatActivity extends BaseFragment implements
                     openForward(true);
                 } else if (id == share) {
                     share();
+                } else if (id == magic) {
+                    showMagicOptions();
                 } else if (id == open_direct) {
                     if (currentChat == null) return;
                     presentFragment(ChatActivity.of(-currentChat.linked_monoforum_id));
@@ -10139,12 +10144,14 @@ public class ChatActivity extends BaseFragment implements
             }
             actionModeViews.add(actionMode.addItemWithWidth(share, R.drawable.msg_shareout, AndroidUtilities.dp(54), LocaleController.getString(R.string.ShareFile)));
             actionModeViews.add(actionMode.addItemWithWidth(delete, R.drawable.msg_delete, AndroidUtilities.dp(54), LocaleController.getString(R.string.Delete)));
+            actionModeViews.add(actionMode.addItemWithWidth(magic, R.drawable.ic_ab_magic, AndroidUtilities.dp(54), LocaleController.getString(R.string.magic)));
         } else {
             actionModeViews.add(actionMode.addItemWithWidth(edit, R.drawable.msg_edit, AndroidUtilities.dp(54), LocaleController.getString(R.string.Edit)));
             actionModeViews.add(actionMode.addItemWithWidth(star, R.drawable.msg_fave, AndroidUtilities.dp(54), LocaleController.getString(R.string.AddToFavorites)));
             actionModeViews.add(actionMode.addItemWithWidth(copy, R.drawable.msg_copy, AndroidUtilities.dp(54), LocaleController.getString(R.string.Copy)));
             actionModeViews.add(actionMode.addItemWithWidth(delete, R.drawable.msg_delete, AndroidUtilities.dp(54), LocaleController.getString(R.string.Delete)));
         }
+        actionMode.setItemVisibility(magic, selectedMessagesIds[0].size() + selectedMessagesIds[1].size() != 0 ? View.VISIBLE : View.GONE);
         actionMode.setItemVisibility(edit, canEditMessagesCount == 1 && selectedMessagesIds[0].size() + selectedMessagesIds[1].size() == 1 ? View.VISIBLE : View.GONE);
         actionMode.setItemVisibility(copy, !isPeerNoForwards() && selectedMessagesCanCopyIds[0].size() + selectedMessagesCanCopyIds[1].size() != 0 ? View.VISIBLE : View.GONE);
         actionMode.setItemVisibility(star, selectedMessagesCanStarIds[0].size() + selectedMessagesCanStarIds[1].size() != 0 ? View.VISIBLE : View.GONE);
@@ -12108,6 +12115,22 @@ public class ChatActivity extends BaseFragment implements
         DialogsActivity fragment = new DialogsActivity(args);
         fragment.setDelegate(ChatActivity.this);
         presentFragment(fragment);
+    }
+
+    private void showMagicOptions() {
+        if (selectedMessagesIds[0].size() == 0 && selectedMessagesIds[1].size() == 0) {
+            return;
+        }
+        ArrayList<MessageObject> selected = new ArrayList<>();
+        for (int a = 0; a < 2; a++) {
+            for (int b = 0; b < selectedMessagesIds[a].size(); b++) {
+                selected.add(selectedMessagesIds[a].valueAt(b));
+            }
+        }
+        MagicActivity magicActivity = new MagicActivity();
+        magicActivity.setSelectedMessages(selected);
+        presentFragment(magicActivity);
+        clearSelectionMode();
     }
 
     public void showBottomOverlayProgress(boolean show, boolean animated) {
@@ -18895,6 +18918,7 @@ public class ChatActivity extends BaseFragment implements
                 ActionBarMenuItem deleteItem = actionBar.createActionMode().getItem(delete);
                 ActionBarMenuItem tagItem = actionBar.createActionMode().getItem(tag_message);
                 ActionBarMenuItem shareItem = actionBar.createActionMode().getItem(share);
+                ActionBarMenuItem magicItem = actionBar.createActionMode().getItem(magic);
 
                 boolean noforwards = isPeerNoForwards() || hasSelectedNoforwardsMessage();
                 if (prevCantForwardCount == 0 && cantForwardMessagesCount != 0 || prevCantForwardCount != 0 && cantForwardMessagesCount == 0) {
@@ -19090,6 +19114,10 @@ public class ChatActivity extends BaseFragment implements
                     shareItem.setVisibility(show ? View.VISIBLE : View.GONE);
                 }
 
+                if (magicItem != null) {
+                    magicItem.setVisibility(selectedCount != 0 ? View.VISIBLE : View.GONE);
+                }
+
                 if (tagItem != null) {
                     tagItem.setVisibility(getUserConfig().isPremium() && (
                         (editItem != null && editItem.getVisibility() == View.VISIBLE ? 1 : 0) +
@@ -19098,7 +19126,8 @@ public class ChatActivity extends BaseFragment implements
                         (copyItem != null && copyItem.getVisibility() == View.VISIBLE ? 1 : 0) +
                         (deleteItem != null && deleteItem.getVisibility() == View.VISIBLE ? 1 : 0) +
                         (starItem != null && starItem.getVisibility() == View.VISIBLE ? 1 : 0) +
-                        (shareItem != null && shareItem.getVisibility() == View.VISIBLE ? 1 : 0)
+                        (shareItem != null && shareItem.getVisibility() == View.VISIBLE ? 1 : 0) +
+                        (magicItem != null && magicItem.getVisibility() == View.VISIBLE ? 1 : 0)
                     ) < 4 ? View.VISIBLE : View.GONE);
                 }
             }

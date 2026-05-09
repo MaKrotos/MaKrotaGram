@@ -349,4 +349,5 @@
     <string name="ResponseProcessingError">Error processing response</string>
     <string name="Use">Use</string>
     <string name="FeatureComingSoon">Feature coming soon</string>
+    <string name="magic">Magic</string>
 </resources>
