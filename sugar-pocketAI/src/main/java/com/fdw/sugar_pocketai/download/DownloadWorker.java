@@ -6,6 +6,7 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.work.Data;
 import androidx.work.Worker;
+import androidx.work.ForegroundInfo;
 import androidx.work.WorkerParameters;
 
 import java.io.File;
@@ -13,6 +14,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.RandomAccessFile;
+import android.os.PowerManager;
 
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -24,6 +26,7 @@ public class DownloadWorker extends Worker {
     
     private final DownloadDatabase database;
     private final OkHttpClient client;
+    private PowerManager.WakeLock wakeLock;
     
     public DownloadWorker(@NonNull Context context, @NonNull WorkerParameters workerParams) {
         super(context, workerParams);
@@ -37,6 +40,14 @@ public class DownloadWorker extends Worker {
     @NonNull
     @Override
     public Result doWork() {
+        // setForegroundAsync is not available in basic Worker.
+        // We will rely on WakeLock to keep the CPU awake.
+        
+        PowerManager powerManager = (PowerManager) getApplicationContext().getSystemService(Context.POWER_SERVICE);
+        if (powerManager != null) {
+            wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "DownloadWorker:WakeLock");
+            wakeLock.acquire();
+        }
         Log.d(TAG, "=== DownloadWorker started ===");
         
         // Получаем параметры
@@ -63,15 +74,9 @@ public class DownloadWorker extends Worker {
         // Проверяем, не существует ли уже конечный файл
         File destinationFile = new File(destinationPath);
         if (destinationFile.exists()) {
-            long fileSize = destinationFile.length();
-            Log.d(TAG, "File already exists: " + destinationPath + " (" + fileSize + " bytes)");
-            // Если файл уже существует, считаем загрузку завершенной?
-            // Для простоты удаляем и начинаем заново (или можно пропустить).
-            // Но лучше проверить, соответствует ли размер ожидаемому.
-            // Пока удаляем.
-            if (!destinationFile.delete()) {
-                Log.w(TAG, "Could not delete existing file");
-            }
+            Log.d(TAG, "File already exists: " + destinationPath + ", marking as completed");
+            updateStatus(downloadId, DownloadStatus.COMPLETED, null);
+            return Result.success();
         }
         
         // Временный файл для докачки
@@ -91,6 +96,9 @@ public class DownloadWorker extends Worker {
                     Log.w(TAG, "Could not delete temp file");
                 }
                 existingBytes = 0;
+            } else {
+                // Если поддерживает, убедимся, что размер файла корректен (не больше общего размера, если он известен)
+                // В данном случае мы просто доверяем размеру .tmp файла
             }
         }
         
@@ -130,11 +138,15 @@ public class DownloadWorker extends Worker {
             Log.d(TAG, "Response code: " + responseCode);
             
             if (responseCode == 416) { // Range Not Satisfiable
-                // Возможно, файл уже полностью скачан
-                Log.w(TAG, "Range not satisfiable, maybe already downloaded");
+                // Это происходит, когда Range запрашивает байты за пределами размера файла.
+                // Скорее всего, файл уже полностью скачан.
+                Log.d(TAG, "Range not satisfiable (416), file likely fully downloaded");
                 if (tempFile.renameTo(destinationFile)) {
                     updateStatus(downloadId, DownloadStatus.COMPLETED, null);
                     return Result.success();
+                } else {
+                    Log.e(TAG, "Failed to rename temp file after 416");
+                    return Result.failure();
                 }
             }
             
@@ -190,6 +202,9 @@ public class DownloadWorker extends Worker {
             // Скачиваем файл
             try (InputStream inputStream = response.body().byteStream();
                  FileOutputStream outputStream = new FileOutputStream(tempFile, existingBytes > 0)) {
+                   if (existingBytes > 0) {
+                       outputStream.getChannel().position(existingBytes);
+                   }
                 
                 byte[] buffer = new byte[8192];
                 int bytesRead;
@@ -256,6 +271,11 @@ public class DownloadWorker extends Worker {
                 }
             }
             return Result.failure();
+        } finally {
+            if (wakeLock != null && wakeLock.isHeld()) {
+                wakeLock.release();
+                Log.d(TAG, "WakeLock released");
+            }
         }
     }
     
@@ -289,7 +309,33 @@ public class DownloadWorker extends Worker {
             Log.e(TAG, "Error updating status", e);
         }
     }
+
+    // Removed createForegroundInfo as it's not usable with basic Worker without setForegroundAsync
+    /*
+    private ForegroundInfo createForegroundInfo() {
+            String channelId = "download_channel";
+            android.app.NotificationChannel channel = new android.app.NotificationChannel(
+                    channelId,
+                    "Model Downloads",
+                    android.app.NotificationManager.IMPORTANCE_LOW
+            );
+            android.app.NotificationManager notificationManager =
+                    (android.app.NotificationManager) getApplicationContext().getSystemService(android.content.Context.NOTIFICATION_SERVICE);
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                notificationManager.createNotificationChannel(channel);
+            }
     
+            android.app.Notification notification = new android.app.Notification.Builder(getApplicationContext(), channelId)
+                    .setContentTitle("Downloading Model")
+                    .setContentText("Downloading AI model in background...")
+                    .setSmallIcon(android.R.drawable.stat_sys_download)
+                    .setOngoing(true)
+                    .build();
+    
+            return new ForegroundInfo(android.os.Build.VERSION.SDK_INT >= 31 ? 101 : 101, notification);
+        }
+    */
+
     private void updateProgress(String downloadId, long downloadedBytes, long totalBytes) {
         try {
             database.downloadDao().updateProgress(downloadId, downloadedBytes, totalBytes, DownloadStatus.RUNNING);
